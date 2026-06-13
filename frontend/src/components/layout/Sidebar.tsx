@@ -13,6 +13,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 
@@ -26,7 +27,12 @@ const navItems = [
   { href: '/settings', label: 'Configurações', icon: Settings },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobileOpen: boolean
+  onMobileClose: () => void
+}
+
+export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
 
@@ -35,21 +41,25 @@ export default function Sidebar() {
     if (saved) setCollapsed(saved === 'true')
   }, [])
 
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isMobileOpen])
+
   const toggle = () => {
     const next = !collapsed
     setCollapsed(next)
     localStorage.setItem('sidebarCollapsed', String(next))
   }
 
-  return (
-    <aside
-      className={clsx(
-        'fixed left-0 top-0 h-screen bg-dark-surface border-r border-dark-border flex flex-col z-40 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-60'
-      )}
-    >
+  const sidebarContent = (
+    <>
       <div className="flex items-center h-16 px-4 border-b border-dark-border">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2" onClick={onMobileClose}>
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">S</span>
           </div>
@@ -61,9 +71,15 @@ export default function Sidebar() {
           )}
         </Link>
         <button
+          onClick={onMobileClose}
+          className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-dark-border transition-colors lg:hidden ml-auto"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <button
           onClick={toggle}
           className={clsx(
-            'p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-dark-border transition-colors',
+            'p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-dark-border transition-colors hidden lg:block',
             collapsed ? 'mx-auto mt-2' : 'ml-auto'
           )}
         >
@@ -75,7 +91,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 py-4 space-y-1 px-2">
+      <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + '/')
@@ -84,6 +100,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onMobileClose}
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative',
                 isActive
@@ -98,7 +115,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-dark-border">
+      <div className="p-4 border-t border-dark-border hidden lg:block">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-success" />
           {!collapsed && (
@@ -106,6 +123,29 @@ export default function Sidebar() {
           )}
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <aside
+        className={clsx(
+          'fixed left-0 top-0 h-screen bg-dark-surface border-r border-dark-border flex flex-col z-50 transition-all duration-300',
+          'lg:z-40',
+          collapsed ? 'lg:w-16' : 'lg:w-60',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'lg:translate-x-0'
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+    </>
   )
 }

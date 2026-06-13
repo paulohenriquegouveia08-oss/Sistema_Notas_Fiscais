@@ -90,7 +90,7 @@ export default function ReceivablesPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 border-b border-dark-border">
+        <div className="flex items-center gap-1 border-b border-dark-border overflow-x-auto flex-nowrap">
           {tabs.map((tab) => (
             <button
               key={tab.key}
