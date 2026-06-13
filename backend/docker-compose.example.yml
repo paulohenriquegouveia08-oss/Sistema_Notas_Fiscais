@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: financas-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: sistema_financeiro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: financas-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  api:
+    build: .
+    container_name: financas-api
+    ports:
+      - "3002:3001"
+    environment:
+      - DATABASE_URL=postgresql://user:${DB_PASSWORD}@db:5432/sistema_financeiro
+      - REDIS_URL=redis://redis:6379
+      - PORT=3001
+      - NODE_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SEFAZ_AMBIENTE=${SEFAZ_AMBIENTE:-homologacao}
+      - SEFAZ_UF=${SEFAZ_UF:-41}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:

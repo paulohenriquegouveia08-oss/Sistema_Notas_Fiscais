@@ -1,0 +1,7 @@
+export enum InvoiceStatus {
+  PENDING = 'PENDING',
+  AUTHORIZED = 'AUTHORIZED',
+  CANCELLED = 'CANCELLED',
+  DENIED = 'DENIED',
+  ERROR = 'ERROR',
+}
