@@ -2,7 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dependências
+# Instalar dependências do sistema e Docker CLI
+RUN apk add --no-cache docker-cli
+
+# Instalar dependências Node
 COPY package*.json ./
 RUN npm ci
 

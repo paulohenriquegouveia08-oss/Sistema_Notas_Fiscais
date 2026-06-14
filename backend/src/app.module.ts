@@ -18,6 +18,7 @@ import { PdfStorageModule } from './modules/pdf-storage/pdf-storage.module';
 import { SefazModule } from './integrations/sefaz/sefaz.module';
 import { BradescoModule } from './integrations/bradesco/bradesco.module';
 import { AiModule } from './integrations/ai/ai.module';
+import { ServerMonitorModule } from './integrations/server-monitor/server-monitor.module';
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
 
 @Module({
@@ -82,6 +83,7 @@ import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
     SefazModule,
     BradescoModule,
     AiModule,
+    ServerMonitorModule,
     TelegramBotModule,
   ],
   providers: [
