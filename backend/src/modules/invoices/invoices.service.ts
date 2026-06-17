@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Invoice } from './entities/invoice.entity';
 import { PaginatedResponse } from '../../shared/types';
 
@@ -31,84 +31,77 @@ export class InvoicesService {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
-    const baseWhere: any = {};
-
-    if (query.customerId) {
-      baseWhere.customerId = query.customerId;
-    }
-
-    if (query.status) {
-      baseWhere.status = query.status;
-    }
-
-    if (query.dataInicio && query.dataFim) {
-      baseWhere.dataEmissao = Between(
-        new Date(query.dataInicio),
-        new Date(query.dataFim),
-      );
-    } else if (query.dataInicio) {
-      baseWhere.dataEmissao = Between(
-        new Date(query.dataInicio),
-        new Date('9999-12-31'),
-      );
-    } else if (query.dataFim) {
-      baseWhere.dataEmissao = Between(
-        new Date('1970-01-01'),
-        new Date(query.dataFim),
-      );
-    }
-
-    let where: any = baseWhere;
-
-    if (query.search) {
-      const searchFields = [
-        'chaveAcesso',
-        'numero',
-        'serie',
-        'customer.razaoSocial',
-      ];
-      where = searchFields.map((field) => ({
-        ...baseWhere,
-        [field]: ILike(`%${query.search}%`),
-      }));
-    }
 
     const sortFieldMap: Record<string, string> = {
-      numero: 'numero',
-      dataEmissao: 'dataEmissao',
-      valorTotal: 'valorTotal',
-      status: 'status',
+      numero: 'invoice.numero',
+      dataEmissao: 'invoice.dataEmissao',
+      valorTotal: 'invoice.valorTotal',
+      status: 'invoice.status',
       razaoSocial: 'customer.razaoSocial',
     };
 
-    const order: any = {};
-    if (query.sortBy && sortFieldMap[query.sortBy]) {
-      order[sortFieldMap[query.sortBy]] = query.sortOrder || 'asc';
-    } else {
-      order.dataEmissao = 'DESC';
+    const sortField = query.sortBy && sortFieldMap[query.sortBy];
+    const orderField = sortField || 'invoice.dataEmissao';
+    const orderDir: 'ASC' | 'DESC' =
+      query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const qb = this.invoiceRepo
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.customer', 'customer')
+      .leftJoinAndSelect('invoice.receivables', 'receivables')
+      .skip(skip)
+      .take(limit)
+      .orderBy(orderField, orderDir)
+      .select([
+        'invoice.id',
+        'invoice.chaveAcesso',
+        'invoice.numero',
+        'invoice.serie',
+        'invoice.dataEmissao',
+        'invoice.dataEntrada',
+        'invoice.valorTotal',
+        'invoice.status',
+        'invoice.customerId',
+        'invoice.pdfPath',
+        'invoice.createdAt',
+        'invoice.updatedAt',
+        'customer',
+        'receivables',
+      ]);
+
+    if (query.customerId) {
+      qb.andWhere('invoice.customerId = :customerId', {
+        customerId: query.customerId,
+      });
     }
 
-    const [data, total] = await this.invoiceRepo.findAndCount({
-      where,
-      relations: ['customer', 'receivables'],
-      skip,
-      take: limit,
-      order,
-      select: {
-        id: true,
-        chaveAcesso: true,
-        numero: true,
-        serie: true,
-        dataEmissao: true,
-        dataEntrada: true,
-        valorTotal: true,
-        status: true,
-        customerId: true,
-        pdfPath: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    if (query.status) {
+      qb.andWhere('invoice.status = :status', { status: query.status });
+    }
+
+    if (query.dataInicio && query.dataFim) {
+      qb.andWhere('invoice.dataEmissao BETWEEN :dataInicio AND :dataFim', {
+        dataInicio: query.dataInicio,
+        dataFim: query.dataFim,
+      });
+    } else if (query.dataInicio) {
+      qb.andWhere('invoice.dataEmissao >= :dataInicio', {
+        dataInicio: query.dataInicio,
+      });
+    } else if (query.dataFim) {
+      qb.andWhere('invoice.dataEmissao <= :dataFim', {
+        dataFim: query.dataFim,
+      });
+    }
+
+    if (query.search) {
+      qb.andWhere(
+        '(invoice.chaveAcesso ILIKE :search OR invoice.numero ILIKE :search OR invoice.serie ILIKE :search OR customer.razaoSocial ILIKE :search)',
+        { search: `%${query.search}%` },
+      );
+    }
+
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       data,
