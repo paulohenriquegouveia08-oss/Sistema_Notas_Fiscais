@@ -167,18 +167,24 @@ export default function InvoiceTable({
                 <tr
                   key={invoice.id}
                   className="hover:bg-dark-border/30 transition-colors cursor-pointer"
-                  onClick={() =>
-                    setExpandedId(
-                      expandedId === invoice.id ? null : invoice.id
-                    )
-                  }
+                  onClick={() => {
+                    if (onViewInvoice) {
+                      onViewInvoice(invoice)
+                    } else {
+                      setExpandedId(
+                        expandedId === invoice.id ? null : invoice.id
+                      )
+                    }
+                  }}
                 >
                   <td className="px-2 py-3">
-                    {expandedId === invoice.id ? (
+                    {onViewInvoice ? (
+                      <Eye className="h-4 w-4 text-text-muted" />
+                    ) : expandedId === invoice.id ? (
                       <ChevronDown className="h-4 w-4 text-text-muted" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-text-muted" />
-                    )}
+                    )} 
                   </td>
                   <td className="px-4 py-3 text-sm font-mono">
                     {invoice.numero}/{invoice.serie}
@@ -199,22 +205,20 @@ export default function InvoiceTable({
                     <Badge status={invoice.status} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (onViewInvoice) {
-                          onViewInvoice(invoice)
-                        } else {
+                    {!onViewInvoice && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
                           router.push(`/invoices/${invoice.id}`)
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                        }}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
-                {expandedId === invoice.id && (
+                {!onViewInvoice && expandedId === invoice.id && (
                   <tr key={`${invoice.id}-details`}>
                     <td colSpan={7} className="bg-dark-bg/50 px-6 py-4">
                       <div className="space-y-3">
