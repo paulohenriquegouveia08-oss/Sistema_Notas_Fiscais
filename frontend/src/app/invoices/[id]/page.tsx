@@ -126,9 +126,17 @@ export default function InvoiceDetailPage() {
   return (
     <PageWrapper
       title={`NF-e ${invoice.numero}/${invoice.serie}`}
-      backButton
     >
       <div className="space-y-6 max-w-4xl">
+        {/* ── Back button ── */}
+        <button
+          onClick={() => router.push('/invoices')}
+          className="flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para notas fiscais
+        </button>
+
         {/* ── Header ── */}
         <Card className="p-6">
           <div className="flex items-start justify-between flex-wrap gap-4">
