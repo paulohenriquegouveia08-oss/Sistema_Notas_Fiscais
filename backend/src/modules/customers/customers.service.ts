@@ -28,7 +28,14 @@ export class CustomersService {
     const where: any = {};
 
     if (search) {
-      where.razaoSocial = ILike(`%${search}%`);
+      where = [
+        { razaoSocial: ILike(`%${search}%`) },
+        { nomeFantasia: ILike(`%${search}%`) },
+        { cnpj: ILike(`%${search}%`) },
+        { cpf: ILike(`%${search}%`) },
+        { telefone: ILike(`%${search}%`) },
+        { cidade: ILike(`%${search}%`) },
+      ];
     }
 
     const [data, total] = await this.customerRepo.findAndCount({
