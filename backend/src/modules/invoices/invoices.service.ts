@@ -65,6 +65,7 @@ export class InvoicesService {
         'chaveAcesso',
         'numero',
         'serie',
+        'customer.razaoSocial',
       ];
       where = searchFields.map((field) => ({
         ...baseWhere,
