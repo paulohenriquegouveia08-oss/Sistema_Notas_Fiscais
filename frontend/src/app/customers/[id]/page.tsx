@@ -25,7 +25,7 @@ import PaymentModal from '@/components/receivables/PaymentModal'
 import { useCustomer, useUpdateCustomer } from '@/hooks/useCustomers'
 import { useInvoices } from '@/hooks/useInvoices'
 import { useReceivables, useCancelReceivable } from '@/hooks/useReceivables'
-import type { Receivable } from '@/types'
+import type { Receivable, Invoice } from '@/types'
 
 function maskCpfCnpj(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -44,6 +44,12 @@ const formatBRL = (value: number) =>
     currency: 'BRL',
   }).format(value)
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(y, m - 1, d))
+}
+
 export default function CustomerDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -57,6 +63,7 @@ export default function CustomerDetailPage() {
 
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [paymentReceivable, setPaymentReceivable] = useState<Receivable | null>(null)
+  const [invoiceModal, setInvoiceModal] = useState<Invoice | null>(null)
   const [editForm, setEditForm] = useState({
     razaoSocial: '',
     email: '',
@@ -192,6 +199,7 @@ export default function CustomerDetailPage() {
           <InvoiceTable
             data={invoicesData}
             onPageChange={() => {}}
+            onViewInvoice={(inv) => setInvoiceModal(inv)}
           />
         </Card>
 
@@ -303,6 +311,99 @@ export default function CustomerDetailPage() {
         open={!!paymentReceivable}
         onClose={() => setPaymentReceivable(null)}
       />
+
+      <Modal
+        open={!!invoiceModal}
+        onClose={() => setInvoiceModal(null)}
+        title={invoiceModal ? `NF-e ${invoiceModal.numero}/${invoiceModal.serie}` : ''}
+        size="lg"
+      >
+        {invoiceModal && (
+          <div className="space-y-6">
+            <div className="bg-dark-border/20 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+                Cliente
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-text-muted">Razão Social</p>
+                  <p className="text-sm font-medium text-text-primary">{customer?.razaoSocial}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-muted">CNPJ/CPF</p>
+                  <p className="text-sm font-mono text-text-primary">{maskCpfCnpj(customer?.cnpj || customer?.cpf || '')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-dark-border/20 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+                Nota Fiscal
+              </h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-muted">Chave de Acesso:</span>
+                  <code className="font-mono text-xs text-text-primary bg-dark-bg px-2 py-1 rounded select-all">
+                    {invoiceModal.chaveAcesso}
+                  </code>
+                </div>
+                <div className="grid grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <p className="text-xs text-text-muted">Valor Total</p>
+                    <p className="text-lg font-bold text-text-primary">{formatBRL(invoiceModal.valorTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">Parcelas</p>
+                    <p className="text-lg font-bold text-text-primary">{invoiceModal.receivables?.length ?? 0}x</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">Status</p>
+                    <div className="mt-1"><Badge status={invoiceModal.status} /></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {invoiceModal.receivables && invoiceModal.receivables.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+                  Parcelas
+                </h4>
+                <div className="overflow-x-auto rounded-lg border border-dark-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-dark-border/20 border-b border-dark-border">
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-text-muted uppercase">Parcela</th>
+                        <th className="px-4 py-2.5 text-right text-xs font-medium text-text-muted uppercase">Valor</th>
+                        <th className="px-4 py-2.5 text-center text-xs font-medium text-text-muted uppercase">Vencimento</th>
+                        <th className="px-4 py-2.5 text-center text-xs font-medium text-text-muted uppercase">Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-border">
+                      {invoiceModal.receivables
+                        .sort((a, b) => a.parcela - b.parcela)
+                        .map((rec) => (
+                          <tr key={rec.id} className="hover:bg-dark-border/10">
+                            <td className="px-4 py-2.5 text-text-primary font-medium">{rec.parcela}ª</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-text-primary">{formatBRL(rec.valorReceber)}</td>
+                            <td className="px-4 py-2.5 text-center text-text-muted">{formatDate(rec.dataVencimento)}</td>
+                            <td className="px-4 py-2.5 text-center"><Badge status={rec.status} /></td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-dark-border">
+              <Button variant="secondary" onClick={() => setInvoiceModal(null)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </PageWrapper>
   )
 }

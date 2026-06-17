@@ -36,6 +36,7 @@ interface InvoiceTableProps {
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   onSort?: (field: string) => void
+  onViewInvoice?: (invoice: Invoice) => void
 }
 
 function SortIcon({ field, sortBy, sortOrder }: { field: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
@@ -93,6 +94,7 @@ export default function InvoiceTable({
   sortBy,
   sortOrder,
   onSort,
+  onViewInvoice,
 }: InvoiceTableProps) {
   const router = useRouter()
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -200,7 +202,11 @@ export default function InvoiceTable({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        router.push(`/invoices/${invoice.id}`)
+                        if (onViewInvoice) {
+                          onViewInvoice(invoice)
+                        } else {
+                          router.push(`/invoices/${invoice.id}`)
+                        }
                       }}
                       className="p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
                     >
