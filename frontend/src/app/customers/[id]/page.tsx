@@ -61,9 +61,12 @@ export default function CustomerDetailPage() {
     razaoSocial: '',
     email: '',
     telefone: '',
-    endereco: '',
+    logradouro: '',
+    bairro: '',
+    numero: '',
     cidade: '',
-    estado: '',
+    uf: '',
+    cep: '',
   })
 
   const openEdit = () => {
@@ -72,9 +75,12 @@ export default function CustomerDetailPage() {
       razaoSocial: customer.razaoSocial,
       email: customer.email || '',
       telefone: customer.telefone || '',
-      endereco: customer.endereco || '',
+      logradouro: customer.logradouro || '',
+      bairro: customer.bairro || '',
+      numero: customer.numero || '',
       cidade: customer.cidade || '',
-      estado: customer.estado || '',
+      uf: customer.uf || '',
+      cep: customer.cep || '',
     })
     setEditModalOpen(true)
   }
@@ -126,11 +132,11 @@ export default function CustomerDetailPage() {
                   <p className="text-sm text-text-muted">{customer.nomeFantasia}</p>
                 )}
                 <p className="text-sm font-mono text-text-muted mt-1">
-                  {maskCpfCnpj(customer.cnpjCpf || customer.cnpj || '')}
+                  {maskCpfCnpj(customer.cnpj || customer.cpf || '')}
                 </p>
-                {customer.inscricaoEstadual && (
+                {customer.ie && (
                   <p className="text-xs text-text-muted">
-                    IE: {customer.inscricaoEstadual}
+                    IE: {customer.ie}
                   </p>
                 )}
               </div>
@@ -153,10 +159,10 @@ export default function CustomerDetailPage() {
                 {customer.telefone}
               </div>
             )}
-            {(customer.cidade || customer.estado) && (
+            {(customer.logradouro || customer.cidade || customer.uf) && (
               <div className="flex items-center gap-2 text-sm text-text-muted">
                 <MapPin className="h-4 w-4" />
-                {[customer.cidade, customer.estado].filter(Boolean).join(' - ')}
+                {[customer.logradouro, customer.numero, customer.cidade, customer.uf].filter(Boolean).join(', ')}
               </div>
             )}
           </div>
@@ -230,13 +236,29 @@ export default function CustomerDetailPage() {
             }
           />
           <Input
-            label="Endereço"
-            value={editForm.endereco}
+            label="Logradouro"
+            value={editForm.logradouro}
             onChange={(e) =>
-              setEditForm({ ...editForm, endereco: e.target.value })
+              setEditForm({ ...editForm, logradouro: e.target.value })
             }
           />
           <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Número"
+              value={editForm.numero}
+              onChange={(e) =>
+                setEditForm({ ...editForm, numero: e.target.value })
+              }
+            />
+            <Input
+              label="Bairro"
+              value={editForm.bairro}
+              onChange={(e) =>
+                setEditForm({ ...editForm, bairro: e.target.value })
+              }
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
             <Input
               label="Cidade"
               value={editForm.cidade}
@@ -245,10 +267,17 @@ export default function CustomerDetailPage() {
               }
             />
             <Input
-              label="Estado"
-              value={editForm.estado}
+              label="UF"
+              value={editForm.uf}
               onChange={(e) =>
-                setEditForm({ ...editForm, estado: e.target.value })
+                setEditForm({ ...editForm, uf: e.target.value })
+              }
+            />
+            <Input
+              label="CEP"
+              value={editForm.cep}
+              onChange={(e) =>
+                setEditForm({ ...editForm, cep: e.target.value })
               }
             />
           </div>

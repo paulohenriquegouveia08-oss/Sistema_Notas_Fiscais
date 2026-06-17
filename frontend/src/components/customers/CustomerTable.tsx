@@ -56,7 +56,7 @@ export default function CustomerTable({
       key: 'cnpjCpf',
       label: 'CNPJ/CPF',
       render: (item) => (
-        <span className="font-mono text-sm">{maskCpfCnpj(item.cnpjCpf || item.cnpj || '')}</span>
+        <span className="font-mono text-sm">{maskCpfCnpj(item.cnpj || item.cpf || '')}</span>
       ),
     },
     {

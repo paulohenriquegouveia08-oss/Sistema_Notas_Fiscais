@@ -28,13 +28,16 @@ export interface Customer {
   nomeFantasia?: string
   cnpj?: string
   cpf?: string
-  cnpjCpf?: string
-  inscricaoEstadual?: string
+  ie?: string
   telefone?: string
   email?: string
-  endereco?: string
+  cep?: string
+  logradouro?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
   cidade?: string
-  estado?: string
+  uf?: string
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +50,10 @@ export interface Invoice {
   dataEmissao: string
   dataEntrada?: string
   valorTotal: number
+  valorProdutos?: number
+  valorFrete?: number
+  valorDesconto?: number
+  valorTotalTributos?: number
   status: InvoiceStatus
   tipoPagamento?: string
   qtdeParcelas?: number
