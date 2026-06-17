@@ -8,6 +8,7 @@ interface InvoiceParams {
   limit?: number
   search?: string
   status?: string
+  customerId?: string
   dataInicio?: string
   dataFim?: string
   sortBy?: string
