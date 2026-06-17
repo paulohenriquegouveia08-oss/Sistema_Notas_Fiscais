@@ -56,7 +56,9 @@ export default function CustomerDetailPage() {
   const id = params.id as string
 
   const { data: customer, isLoading } = useCustomer(id)
-  const { data: invoicesData } = useInvoices({ page: 1, limit: 10, customerId: id })
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const { data: invoicesData } = useInvoices({ page: 1, limit: 10, customerId: id, dataInicio: startDate || undefined, dataFim: endDate || undefined })
   const { data: receivablesData } = useReceivables({ customerId: id })
   const updateCustomer = useUpdateCustomer()
   const cancelReceivable = useCancelReceivable()
@@ -193,9 +195,26 @@ export default function CustomerDetailPage() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">
-            Notas Fiscais
-          </h3>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h3 className="text-lg font-semibold text-text-primary">
+              Notas Fiscais
+            </h3>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input-field w-36 text-sm"
+              />
+              <span className="text-text-muted text-sm">até</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input-field w-36 text-sm"
+              />
+            </div>
+          </div>
           <InvoiceTable
             data={invoicesData}
             onPageChange={() => {}}
