@@ -31,35 +31,45 @@ export class InvoicesService {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const baseWhere: any = {};
 
     if (query.customerId) {
-      where.customerId = query.customerId;
+      baseWhere.customerId = query.customerId;
     }
 
     if (query.status) {
-      where.status = query.status;
+      baseWhere.status = query.status;
     }
 
     if (query.dataInicio && query.dataFim) {
-      where.dataEmissao = Between(
+      baseWhere.dataEmissao = Between(
         new Date(query.dataInicio),
         new Date(query.dataFim),
       );
     } else if (query.dataInicio) {
-      where.dataEmissao = Between(
+      baseWhere.dataEmissao = Between(
         new Date(query.dataInicio),
         new Date('9999-12-31'),
       );
     } else if (query.dataFim) {
-      where.dataEmissao = Between(
+      baseWhere.dataEmissao = Between(
         new Date('1970-01-01'),
         new Date(query.dataFim),
       );
     }
 
+    let where: any = baseWhere;
+
     if (query.search) {
-      where.chaveAcesso = ILike(`%${query.search}%`);
+      const searchFields = [
+        'chaveAcesso',
+        'numero',
+        'serie',
+      ];
+      where = searchFields.map((field) => ({
+        ...baseWhere,
+        [field]: ILike(`%${query.search}%`),
+      }));
     }
 
     const sortFieldMap: Record<string, string> = {
