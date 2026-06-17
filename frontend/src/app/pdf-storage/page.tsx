@@ -60,10 +60,8 @@ export default function PdfStoragePage() {
     })
   }
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Remover "${name}"?`)) {
-      deleteMutation.mutate(id)
-    }
+  const handleDelete = (id: string, _name: string) => {
+    deleteMutation.mutate(id)
   }
 
   const previewDoc = documents?.find((d) => d.id === previewId)
