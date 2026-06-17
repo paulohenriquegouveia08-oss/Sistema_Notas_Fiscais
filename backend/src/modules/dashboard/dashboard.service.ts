@@ -122,7 +122,7 @@ export class DashboardService {
 
       const payments = await this.paymentRepo
         .createQueryBuilder('p')
-        .select("to_char(p.dataPagamento::date, 'YYYY-MM')", 'mes')
+        .select("to_char(CAST(p.dataPagamento AS DATE), 'YYYY-MM')", 'mes')
         .addSelect('COALESCE(SUM(p.valorPago), 0)', 'recebido')
         .where('p.dataPagamento >= :startDate', { startDate })
         .andWhere('p.dataPagamento <= :endDate', { endDate })
@@ -132,7 +132,7 @@ export class DashboardService {
 
       const pendingByMonth = await this.receivableRepo
         .createQueryBuilder('r')
-        .select("to_char(r.dataVencimento::date, 'YYYY-MM')", 'mes')
+        .select("to_char(CAST(r.dataVencimento AS DATE), 'YYYY-MM')", 'mes')
         .addSelect('COALESCE(SUM(r.valorReceber), 0)', 'pendente')
         .where('r.status = :status', { status: ReceivableStatus.PENDING })
         .andWhere('r.dataVencimento >= :startDate', { startDate })
@@ -143,7 +143,7 @@ export class DashboardService {
 
       const overdueByMonth = await this.receivableRepo
         .createQueryBuilder('r')
-        .select("to_char(r.dataVencimento::date, 'YYYY-MM')", 'mes')
+        .select("to_char(CAST(r.dataVencimento AS DATE), 'YYYY-MM')", 'mes')
         .addSelect('COALESCE(SUM(r.valorReceber), 0)', 'atrasado')
         .where('r.status = :status', { status: ReceivableStatus.OVERDUE })
         .andWhere('r.dataVencimento >= :startDate', { startDate })
@@ -174,7 +174,7 @@ export class DashboardService {
 
       return chartData;
     } catch (error: any) {
-      this.logger.error(`Erro ao buscar gráfico mensal: ${error.message}`);
+      this.logger.error(`Erro ao buscar gráfico mensal: ${error.message}`, error.stack);
       return [];
     }
   }

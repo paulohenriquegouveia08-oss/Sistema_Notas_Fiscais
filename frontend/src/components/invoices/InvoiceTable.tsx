@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import {
   ChevronDown,
   ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
   Copy,
   Eye,
   Check,
@@ -21,13 +23,45 @@ const formatBRL = (value: number) =>
     currency: 'BRL',
   }).format(value)
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(y, m - 1, d))
+}
 
 interface InvoiceTableProps {
   data?: PaginatedResponse<Invoice>
   loading?: boolean
   onPageChange: (page: number) => void
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  onSort?: (field: string) => void
+}
+
+function SortIcon({ field, sortBy, sortOrder }: { field: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
+  if (sortBy !== field) return <ChevronsUpDown className="h-3 w-3 text-text-muted/50 inline ml-1" />
+  return sortOrder === 'asc'
+    ? <ChevronUp className="h-3 w-3 inline ml-1" />
+    : <ChevronDown className="h-3 w-3 inline ml-1" />
+}
+
+function SortableHeader({ children, field, sortBy, sortOrder, onSort, className }: {
+  children: React.ReactNode
+  field: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  onSort?: (field: string) => void
+  className?: string
+}) {
+  return (
+    <th
+      className={`px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer select-none hover:text-text-primary transition-colors ${className || ''}`}
+      onClick={() => onSort?.(field)}
+    >
+      {children}
+      <SortIcon field={field} sortBy={sortBy} sortOrder={sortOrder} />
+    </th>
+  )
 }
 
 function ReceivableMiniRow({ item }: { item: Receivable }) {
@@ -56,6 +90,9 @@ export default function InvoiceTable({
   data,
   loading,
   onPageChange,
+  sortBy,
+  sortOrder,
+  onSort,
 }: InvoiceTableProps) {
   const router = useRouter()
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -99,24 +136,24 @@ export default function InvoiceTable({
           <thead>
             <tr className="border-b border-dark-border">
               <th className="w-8 px-2 py-3" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <SortableHeader field="numero" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort}>
                 Nº / Série
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader field="razaoSocial" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort}>
                 Cliente
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader field="dataEmissao" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort}>
                 Emissão
-              </th>
+              </SortableHeader>
               <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">
                 Parcelas
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
+              <SortableHeader field="valorTotal" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} className="text-right">
                 Valor
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader field="status" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} className="text-center">
                 Status
-              </th>
+              </SortableHeader>
               <th className="px-4 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
                 Ações
               </th>

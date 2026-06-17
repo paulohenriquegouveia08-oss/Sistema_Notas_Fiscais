@@ -13,8 +13,29 @@ const formatBRL = (value: number) =>
     currency: 'BRL',
   }).format(value)
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(y, m - 1, d))
+}
+
+const paymentMethodLabel: Record<string, string> = {
+  DINHEIRO: 'Dinheiro',
+  CHEQUE: 'Cheque',
+  CARTAO_CREDITO: 'Cartão de Crédito',
+  CARTAO_DEBITO: 'Cartão de Débito',
+  BOLETO: 'Boleto',
+  PIX: 'Pix',
+  CREDIARIO: 'Crediário',
+  VALE_ALIMENTACAO: 'Vale Alimentação',
+  VALE_REFEICAO: 'Vale Refeição',
+  CASH: 'Dinheiro',
+  CHECK: 'Cheque',
+  CARD: 'Cartão',
+  TERM: 'Crediário',
+  TRANSFER: 'Transferência',
+  OUTRO: 'Outro',
+}
 
 interface ReceivableTableProps {
   data?: PaginatedResponse<Receivable>
@@ -96,11 +117,11 @@ export default function ReceivableTable({
       render: (item) => formatBRL(item.valorReceber),
     },
     {
-      key: 'paymentMethod',
+      key: 'formaPagamento',
       label: 'Método',
       render: (item) =>
-        item.paymentMethod ? (
-          <span className="text-sm text-text-muted">{item.paymentMethod}</span>
+        item.formaPagamento ? (
+          <span className="text-sm text-text-muted">{paymentMethodLabel[item.formaPagamento] || item.formaPagamento}</span>
         ) : (
           '—'
         ),

@@ -62,6 +62,10 @@ export class PdfStorageController {
   @ApiOperation({ summary: 'Visualizar/download do PDF' })
   async getFile(@Param('id') id: string, @Res() res: Response) {
     const filePath = await this.service.getFilePath(id);
+    if (!filePath) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ message: 'Arquivo físico não encontrado no servidor', id });
+    }
     const stat = fs.statSync(filePath);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', stat.size);

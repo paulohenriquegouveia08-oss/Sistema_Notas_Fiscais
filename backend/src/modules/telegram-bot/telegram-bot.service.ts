@@ -674,6 +674,24 @@ As ferramentas restart_docker_service e exec_docker_command SÓ podem ser execut
     ].join('\n');
   }
 
+  async setCommands(): Promise<void> {
+    try {
+      const commands = [
+        { command: 'start', description: 'Mostrar ajuda e comandos disponíveis' },
+        { command: 'status', description: 'Resumo financeiro do sistema' },
+        { command: 'recebiveis', description: 'Listar recebíveis recentes' },
+        { command: 'relatorio', description: 'Relatório financeiro completo' },
+        { command: 'servidor', description: 'Status do servidor (CPU, RAM, disco)' },
+        { command: 'servicos', description: 'Status dos containers Docker' },
+        { command: 'discos', description: 'Armazenamento por projeto' },
+      ];
+      await axios.post(`${this.apiBase}/setMyCommands`, { commands }, { timeout: 10000 });
+      this.logger.log('Telegram commands registered successfully');
+    } catch (error: any) {
+      this.logger.error(`Failed to register Telegram commands: ${error.message}`);
+    }
+  }
+
   private async sendMessage(chatId: number, text: string): Promise<void> {
     try {
       await axios.post(`${this.apiBase}/sendMessage`, {

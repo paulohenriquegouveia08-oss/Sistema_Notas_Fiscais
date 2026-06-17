@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like } from 'typeorm';
+import { Repository, Between, ILike } from 'typeorm';
 import { Invoice } from './entities/invoice.entity';
 import { PaginatedResponse } from '../../shared/types';
 
@@ -25,6 +25,8 @@ export class InvoicesService {
     dataInicio?: string;
     dataFim?: string;
     search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }): Promise<PaginatedResponse<Invoice>> {
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -57,7 +59,22 @@ export class InvoicesService {
     }
 
     if (query.search) {
-      where.chaveAcesso = Like(`%${query.search}%`);
+      where.chaveAcesso = ILike(`%${query.search}%`);
+    }
+
+    const sortFieldMap: Record<string, string> = {
+      numero: 'numero',
+      dataEmissao: 'dataEmissao',
+      valorTotal: 'valorTotal',
+      status: 'status',
+      razaoSocial: 'customer.razaoSocial',
+    };
+
+    const order: any = {};
+    if (query.sortBy && sortFieldMap[query.sortBy]) {
+      order[sortFieldMap[query.sortBy]] = query.sortOrder || 'asc';
+    } else {
+      order.dataEmissao = 'DESC';
     }
 
     const [data, total] = await this.invoiceRepo.findAndCount({
@@ -65,7 +82,7 @@ export class InvoicesService {
       relations: ['customer', 'receivables'],
       skip,
       take: limit,
-      order: { dataEmissao: 'DESC' },
+      order,
       select: {
         id: true,
         chaveAcesso: true,

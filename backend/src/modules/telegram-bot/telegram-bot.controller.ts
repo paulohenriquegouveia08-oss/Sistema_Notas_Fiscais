@@ -37,6 +37,8 @@ export class TelegramBotController {
       { timeout: 15000 },
     );
 
+    await this.telegramBotService.setCommands();
+
     return { ok: true, url: webhookUrl };
   }
 }

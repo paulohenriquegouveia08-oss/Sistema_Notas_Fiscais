@@ -181,6 +181,7 @@ export interface PdfDocument {
   fileName: string
   fileSize: number
   observacao?: string
+  fileExists?: boolean
   createdAt: string
   updatedAt: string
 }

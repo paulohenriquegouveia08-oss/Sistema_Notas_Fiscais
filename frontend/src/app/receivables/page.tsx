@@ -114,8 +114,16 @@ export default function ReceivablesPage() {
           loading={isLoading}
           onPageChange={setPage}
           onPay={(rec) => setSelectedReceivable(rec)}
-          onUnpay={(id) => unpayMutation.mutate(id)}
-          onCancel={(id) => cancelMutation.mutate(id)}
+          onUnpay={(id) => {
+            if (window.confirm('Tem certeza que deseja desfazer o pagamento deste recebível?')) {
+              unpayMutation.mutate(id)
+            }
+          }}
+          onCancel={(id) => {
+            if (window.confirm('Tem certeza que deseja cancelar este recebível? Esta ação não pode ser desfeita.')) {
+              cancelMutation.mutate(id)
+            }
+          }}
         />
       </div>
 

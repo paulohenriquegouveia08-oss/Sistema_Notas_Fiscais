@@ -37,6 +37,8 @@ export class InvoicesController {
   @ApiQuery({ name: 'dataInicio', required: false, type: String })
   @ApiQuery({ name: 'dataFim', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, type: String })
   async findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -45,6 +47,8 @@ export class InvoicesController {
     @Query('dataInicio') dataInicio?: string,
     @Query('dataFim') dataFim?: string,
     @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     return this.invoicesService.findAll({
       page: +page,
@@ -54,6 +58,8 @@ export class InvoicesController {
       dataInicio,
       dataFim,
       search,
+      sortBy,
+      sortOrder,
     });
   }
 

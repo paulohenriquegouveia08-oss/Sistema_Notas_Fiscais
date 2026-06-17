@@ -41,7 +41,15 @@ export default function CustomerTable({
       label: 'Razão Social',
       sortable: true,
       render: (item) => (
-        <span className="font-medium text-text-primary">{item.razaoSocial}</span>
+        <span
+          className="font-medium text-primary hover:underline cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation()
+            router.push(`/customers/${item.id}`)
+          }}
+        >
+          {item.razaoSocial}
+        </span>
       ),
     },
     {

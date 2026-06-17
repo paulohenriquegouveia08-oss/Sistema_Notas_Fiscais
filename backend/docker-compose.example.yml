@@ -37,8 +37,9 @@ services:
       - SEFAZ_UF=${SEFAZ_UF:-41}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - AI_MODEL=${AI_MODEL:-llama-3.3-70b-versatile}
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - AI_MODEL=${AI_MODEL:-qwen2.5:7b}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://172.17.0.1:11434}
     depends_on:
       - db
       - redis

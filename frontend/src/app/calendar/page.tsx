@@ -35,8 +35,11 @@ const formatBRL = (value: number) =>
     currency: 'BRL',
   }).format(value)
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(y, m - 1, d))
+}
 
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())

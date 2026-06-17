@@ -50,7 +50,7 @@ export default function CustomerDetailPage() {
   const id = params.id as string
 
   const { data: customer, isLoading } = useCustomer(id)
-  const { data: invoicesData } = useInvoices({ page: 1, limit: 10 })
+  const { data: invoicesData } = useInvoices({ page: 1, limit: 10, customerId: id })
   const { data: receivablesData } = useReceivables({ customerId: id })
   const updateCustomer = useUpdateCustomer()
   const cancelReceivable = useCancelReceivable()

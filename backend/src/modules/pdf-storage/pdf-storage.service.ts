@@ -52,8 +52,12 @@ export class PdfStorageService {
     return docs;
   }
 
-  async findAll(): Promise<PdfDocument[]> {
-    return this.repo.find({ order: { createdAt: 'DESC' } });
+  async findAll(): Promise<(PdfDocument & { fileExists: boolean })[]> {
+    const docs = await this.repo.find({ order: { createdAt: 'DESC' } });
+    return docs.map((doc) => ({
+      ...doc,
+      fileExists: fs.existsSync(doc.filePath),
+    }));
   }
 
   async findOne(id: string): Promise<PdfDocument> {
@@ -62,10 +66,11 @@ export class PdfStorageService {
     return doc;
   }
 
-  async getFilePath(id: string): Promise<string> {
+  async getFilePath(id: string): Promise<string | null> {
     const doc = await this.findOne(id);
     if (!fs.existsSync(doc.filePath)) {
-      throw new NotFoundException('Arquivo físico não encontrado');
+      this.logger.warn(`Arquivo físico não encontrado para documento ${id}: ${doc.filePath}`);
+      return null;
     }
     return doc.filePath;
   }

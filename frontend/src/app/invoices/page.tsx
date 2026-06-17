@@ -15,8 +15,20 @@ export default function InvoicesPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState('dataEmissao')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importMutation = useImportXml()
+
+  const toggleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+    setPage(1)
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -31,8 +43,10 @@ export default function InvoicesPage() {
     limit: 20,
     search: debouncedSearch || undefined,
     status: status || undefined,
-    startDate: startDate || undefined,
-    endDate: endDate || undefined,
+    dataInicio: startDate || undefined,
+    dataFim: endDate || undefined,
+    sortBy,
+    sortOrder,
   })
 
   const statusOptions = [
@@ -109,6 +123,9 @@ export default function InvoicesPage() {
           data={data}
           loading={isLoading}
           onPageChange={setPage}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={toggleSort}
         />
       </div>
     </PageWrapper>

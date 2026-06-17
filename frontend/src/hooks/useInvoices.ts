@@ -8,8 +8,8 @@ interface InvoiceParams {
   limit?: number
   search?: string
   status?: string
-  startDate?: string
-  endDate?: string
+  dataInicio?: string
+  dataFim?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -55,14 +55,16 @@ export function useImportXml() {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
 
       if (result.imported > 0) {
-        toast.success(
-          `${result.imported} nota(s) importada(s), ${result.duplicated} já existente(s)`,
-          { duration: 5000 }
-        )
+        const parts = [`${result.imported} nota(s) importada(s)`]
+        if (result.duplicated > 0) parts.push(`${result.duplicated} já existente(s)`)
+        if (result.errors > 0) parts.push(`${result.errors} com erro`)
+        toast.success(parts.join(', '), { duration: 5000 })
       } else if (result.errors > 0) {
-        toast.error(`${result.errors} arquivo(s) com erro`)
+        const parts = [`${result.errors} arquivo(s) com erro`]
+        if (result.duplicated > 0) parts.push(`${result.duplicated} já existente(s)`)
+        toast.error(parts.join(', '), { duration: 5000 })
       } else {
-        toast('Nenhuma nota nova importada (todas já existem)', { icon: '📭' })
+        toast(`${result.duplicated} nota(s) já existente(s) — nenhuma nova importada`, { icon: 'ℹ️' })
       }
     },
     onError: (err: any) => {
