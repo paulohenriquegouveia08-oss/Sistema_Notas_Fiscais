@@ -5,11 +5,12 @@ import api from '@/services/api'
 import type { PdfDocument } from '@/types'
 import toast from 'react-hot-toast'
 
-export function usePdfDocuments() {
+export function usePdfDocuments(search?: string) {
   return useQuery<PdfDocument[]>({
-    queryKey: ['pdf-storage'],
+    queryKey: ['pdf-storage', search],
     queryFn: async () => {
-      const { data } = await api.get('/pdf-storage')
+      const params = search ? { search } : {}
+      const { data } = await api.get('/pdf-storage', { params })
       return data
     },
   })

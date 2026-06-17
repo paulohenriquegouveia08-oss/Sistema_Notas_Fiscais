@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Upload, FileText, Trash2, X, Download, Eye, AlertTriangle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Upload, FileText, Trash2, X, Download, Eye, AlertTriangle, Search } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { usePdfDocuments, useUploadPdf, useDeletePdf } from '@/hooks/usePdfStorage'
 
@@ -24,12 +24,21 @@ function formatDate(dateStr: string): string {
 }
 
 export default function PdfStoragePage() {
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [uploadQueue, setUploadQueue] = useState<File[]>([])
   const [uploadObservacao, setUploadObservacao] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { data: documents, isLoading } = usePdfDocuments()
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const { data: documents, isLoading } = usePdfDocuments(debouncedSearch || undefined)
   const uploadMutation = useUploadPdf()
   const deleteMutation = useDeletePdf()
 
@@ -162,6 +171,18 @@ export default function PdfStoragePage() {
             </div>
           </div>
         )}
+
+        {/* ── Search ── */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Buscar por nome do arquivo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field pl-10"
+          />
+        </div>
 
         {/* ── Document List ── */}
         {isLoading ? (

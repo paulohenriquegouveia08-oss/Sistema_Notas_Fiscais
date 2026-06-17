@@ -4,6 +4,7 @@ import {
   Post,
   Delete,
   Param,
+  Query,
   UploadedFiles,
   Body,
   UseInterceptors,
@@ -48,8 +49,8 @@ export class PdfStorageController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todos os PDFs' })
-  async findAll() {
-    return this.service.findAll();
+  async findAll(@Query('search') search?: string) {
+    return this.service.findAll(search);
   }
 
   @Get(':id')

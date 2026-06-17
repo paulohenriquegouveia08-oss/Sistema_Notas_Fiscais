@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -52,8 +52,9 @@ export class PdfStorageService {
     return docs;
   }
 
-  async findAll(): Promise<(PdfDocument & { fileExists: boolean })[]> {
-    const docs = await this.repo.find({ order: { createdAt: 'DESC' } });
+  async findAll(search?: string): Promise<(PdfDocument & { fileExists: boolean })[]> {
+    const where = search ? { originalName: ILike(`%${search}%`) } : {};
+    const docs = await this.repo.find({ where, order: { createdAt: 'DESC' } });
     return docs.map((doc) => ({
       ...doc,
       fileExists: fs.existsSync(doc.filePath),
