@@ -11,9 +11,11 @@ import { Customer } from '../../customers/entities/customer.entity';
 import { Invoice } from '../../invoices/entities/invoice.entity';
 import { Receivable } from '../../receivables/entities/receivable.entity';
 import { Payment } from '../../payments/entities/payment.entity';
+import { CompanySettings } from '../../settings/entities/company-settings.entity';
 import { InvoiceStatus } from '../../../shared/enums/invoice-status.enum';
 import { ReceivableStatus } from '../../../shared/enums/receivable-status.enum';
 import { ImportResult } from '../interfaces/import-result.interface';
+import { PdfGeneratorService } from '../../pdf-storage/pdf-generator.service';
 
 function normalizeDate(dateStr: string | undefined | null): string | undefined {
   if (!dateStr) return undefined;
@@ -48,6 +50,9 @@ export class XmlImportService {
     private readonly xmlValidator: XmlValidator,
     private readonly nfePdfParser: NfePdfParser,
     private readonly sefazService: SefazConsultaService,
+    private readonly pdfGenerator: PdfGeneratorService,
+    @InjectRepository(CompanySettings)
+    private readonly settingsRepo: Repository<CompanySettings>,
   ) {}
 
   async importXml(xmlContent: string): Promise<ImportResult> {
@@ -159,6 +164,25 @@ export class XmlImportService {
       }
     } catch (err: any) {
       errors.push(`Erro ao criar recebíveis: ${err.message}`);
+    }
+
+    try {
+      const settings = await this.settingsRepo.findOne({ where: {} });
+      if (settings) {
+        const pdfResult = await this.pdfGenerator.generateForInvoice(
+          savedInvoice as Invoice,
+          customer,
+          settings,
+          receivables,
+        );
+        if (pdfResult) {
+          await this.invoiceRepo.update(savedInvoice.id, { pdfPath: pdfResult.filePath });
+          this.logger.log(`DANFE gerado para NF-e ${parsed.chaveAcesso}`);
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Erro ao gerar DANFE para NF-e ${parsed.chaveAcesso}: ${err.message}`);
+      errors.push(`Erro ao gerar DANFE: ${err.message}`);
     }
 
     this.logger.log(
@@ -484,5 +508,49 @@ export class XmlImportService {
     }
 
     return { processed: invoices.length, updated, errors };
+  }
+
+  async backfillPdfs(): Promise<{ processed: number; generated: number; errors: string[] }> {
+    const invoices = await this.invoiceRepo.find({
+      where: { pdfPath: IsNull(), xmlCompleto: Not(IsNull()) },
+      relations: ['customer', 'receivables'],
+    });
+
+    let generated = 0;
+    const errors: string[] = [];
+    const settings = await this.settingsRepo.findOne({ where: {} });
+
+    if (!settings) {
+      return { processed: invoices.length, generated: 0, errors: ['Company settings not found'] };
+    }
+
+    for (const invoice of invoices) {
+      try {
+        const customer = invoice.customer;
+        if (!customer) {
+          errors.push(`NF ${invoice.numero}: customer not found`);
+          continue;
+        }
+
+        const { products, protocolo } = this.pdfGenerator.parseProducts(invoice.xmlCompleto);
+        const result = await this.pdfGenerator.generate(
+          invoice,
+          customer,
+          settings,
+          invoice.receivables || [],
+          products,
+          protocolo,
+        );
+
+        if (result) {
+          await this.invoiceRepo.update(invoice.id, { pdfPath: result.filePath });
+          generated++;
+        }
+      } catch (err: any) {
+        errors.push(`NF ${invoice.numero} (${invoice.chaveAcesso}): ${err.message}`);
+      }
+    }
+
+    return { processed: invoices.length, generated, errors };
   }
 }

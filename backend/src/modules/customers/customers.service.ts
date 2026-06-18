@@ -25,7 +25,7 @@ export class CustomersService {
     search?: string,
   ): Promise<PaginatedResponse<Customer>> {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    let where: any = {};
 
     if (search) {
       where = [

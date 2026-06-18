@@ -53,6 +53,29 @@ export class PdfStorageController {
     return this.service.findAll(search);
   }
 
+  @Post('date-editor')
+  @ApiOperation({ summary: 'Gerar PDF com data alterada' })
+  async generateWithEditedDate(@Body() body: { invoiceId: string; date: string; time?: string }) {
+    return this.service.generateWithEditedDate(body);
+  }
+
+  @Get('date-editor/:fileName')
+  @ApiOperation({ summary: 'Visualizar/download do PDF gerado com data alterada' })
+  async getEditedDateFile(@Param('fileName') fileName: string, @Res() res: Response) {
+    const filePath = this.service.getEditedDateFilePath(fileName);
+    if (!filePath) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ message: 'Arquivo PDF não encontrado no servidor', fileName });
+    }
+
+    const stat = fs.statSync(filePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', stat.size);
+    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obter metadados de um PDF' })
   async findOne(@Param('id') id: string) {

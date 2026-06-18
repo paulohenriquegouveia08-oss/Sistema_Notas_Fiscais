@@ -1,12 +1,35 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { PdfDocument } from './entities/pdf-document.entity';
+import { Invoice } from '../invoices/entities/invoice.entity';
+import { CompanySettings } from '../settings/entities/company-settings.entity';
+import { PdfGeneratorService } from './pdf-generator.service';
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'pdf-storage');
+const DATE_EDITS_DIR = path.join(process.cwd(), 'uploads', 'pdf-date-edits');
+
+export interface DateEditRequest {
+  invoiceId: string;
+  date: string;
+  time?: string;
+}
+
+export interface DateEditResult {
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  fileUrl: string;
+  invoice: {
+    id: string;
+    numero: string;
+    serie: string;
+    chaveAcesso: string;
+  };
+}
 
 @Injectable()
 export class PdfStorageService {
@@ -15,9 +38,17 @@ export class PdfStorageService {
   constructor(
     @InjectRepository(PdfDocument)
     private readonly repo: Repository<PdfDocument>,
+    @InjectRepository(Invoice)
+    private readonly invoiceRepo: Repository<Invoice>,
+    @InjectRepository(CompanySettings)
+    private readonly settingsRepo: Repository<CompanySettings>,
+    private readonly pdfGenerator: PdfGeneratorService,
   ) {
     if (!fs.existsSync(UPLOADS_DIR)) {
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DATE_EDITS_DIR)) {
+      fs.mkdirSync(DATE_EDITS_DIR, { recursive: true });
     }
   }
 
@@ -86,5 +117,111 @@ export class PdfStorageService {
       this.logger.warn(`Erro ao deletar arquivo físico: ${err}`);
     }
     await this.repo.remove(doc);
+  }
+
+  async generateWithEditedDate(input: DateEditRequest): Promise<DateEditResult> {
+    const invoiceId = (input.invoiceId || '').trim();
+    if (!invoiceId) {
+      throw new BadRequestException('Selecione uma nota fiscal');
+    }
+
+    const date = this.normalizeDate(input.date);
+    const time = input.time ? this.normalizeTime(input.time) : '';
+    const overrideDateTime = time ? `${date}T${time}` : date;
+
+    const invoice = await this.invoiceRepo.findOne({
+      where: { id: invoiceId },
+      relations: ['customer', 'receivables'],
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Nota fiscal não encontrada');
+    }
+
+    if (!invoice.xmlCompleto) {
+      throw new BadRequestException('A nota selecionada não possui XML para regenerar a DANFE');
+    }
+
+    const [settings] = await this.settingsRepo.find({ take: 1 });
+    const result = await this.pdfGenerator.generateForInvoice(
+      invoice,
+      invoice.customer,
+      settings || null,
+      invoice.receivables || [],
+      {
+        overrideDateTime,
+        outputDir: DATE_EDITS_DIR,
+        persistDocument: false,
+      },
+    );
+
+    if (!result?.filePath || !fs.existsSync(result.filePath)) {
+      throw new BadRequestException('Não foi possível gerar o PDF');
+    }
+
+    const stat = await fs.promises.stat(result.filePath);
+    const fileName = path.basename(result.filePath);
+
+    return {
+      fileName,
+      originalName: `DANFE-${invoice.numero}-${invoice.serie}.pdf`,
+      fileSize: stat.size,
+      fileUrl: `/pdf-storage/date-editor/${fileName}`,
+      invoice: {
+        id: invoice.id,
+        numero: invoice.numero,
+        serie: invoice.serie,
+        chaveAcesso: invoice.chaveAcesso,
+      },
+    };
+  }
+
+  getEditedDateFilePath(fileName: string): string | null {
+    const safeName = path.basename(fileName || '');
+    if (!safeName || safeName !== fileName || path.extname(safeName).toLowerCase() !== '.pdf') {
+      throw new BadRequestException('Nome de arquivo inválido');
+    }
+
+    const filePath = path.join(DATE_EDITS_DIR, safeName);
+    const resolvedBase = path.resolve(DATE_EDITS_DIR);
+    const resolvedFile = path.resolve(filePath);
+    if (!resolvedFile.startsWith(resolvedBase + path.sep)) {
+      throw new BadRequestException('Nome de arquivo inválido');
+    }
+
+    return fs.existsSync(resolvedFile) ? resolvedFile : null;
+  }
+
+  private normalizeDate(value: string): string {
+    const date = (value || '').trim();
+    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      throw new BadRequestException('Informe a data no formato AAAA-MM-DD');
+    }
+
+    const parsed = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException('Data inválida');
+    }
+
+    return date;
+  }
+
+  private normalizeTime(value: string): string {
+    const time = (value || '').trim();
+    const match = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) {
+      throw new BadRequestException('Informe o horário no formato HH:mm ou HH:mm:ss');
+    }
+
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    const second = Number(match[3] || '0');
+
+    if (hour > 23 || minute > 59 || second > 59) {
+      throw new BadRequestException('Horário inválido');
+    }
+
+    return `${match[1]}:${match[2]}:${match[3] || '00'}`;
   }
 }

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('pdf_documents')
@@ -25,6 +26,10 @@ export class PdfDocument {
 
   @Column({ nullable: true })
   observacao?: string;
+
+  @Index()
+  @Column({ nullable: true })
+  invoiceId?: string;
 
   @CreateDateColumn()
   createdAt: Date;

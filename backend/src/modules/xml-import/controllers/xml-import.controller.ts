@@ -95,4 +95,15 @@ export class XmlImportController {
   async backfill() {
     return this.xmlImportService.backfillTipoPagamento();
   }
+
+  @Post('backfill-pdfs')
+  @ApiOperation({ summary: 'Gerar DANFE PDF para invoices que ainda não possuem PDF' })
+  async backfillPdfs() {
+    this.logger.log('Iniciando backfill de DANFE PDFs...');
+    const result = await this.xmlImportService.backfillPdfs();
+    this.logger.log(
+      `Backfill PDF concluído: ${result.processed} processadas, ${result.generated} gerados, ${result.errors.length} erros`,
+    );
+    return result;
+  }
 }

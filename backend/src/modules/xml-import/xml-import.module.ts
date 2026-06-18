@@ -10,12 +10,15 @@ import { Customer } from '../customers/entities/customer.entity';
 import { Invoice } from '../invoices/entities/invoice.entity';
 import { Receivable } from '../receivables/entities/receivable.entity';
 import { Payment } from '../payments/entities/payment.entity';
+import { CompanySettings } from '../settings/entities/company-settings.entity';
 import { SefazModule } from '../../integrations/sefaz/sefaz.module';
+import { PdfStorageModule } from '../pdf-storage/pdf-storage.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Customer, Invoice, Receivable, Payment]),
+    TypeOrmModule.forFeature([Customer, Invoice, Receivable, Payment, CompanySettings]),
     SefazModule,
+    PdfStorageModule,
     MulterModule.register({
       limits: { fileSize: 50 * 1024 * 1024 },
     }),
