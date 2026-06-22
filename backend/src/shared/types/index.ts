@@ -155,3 +155,51 @@ export interface SettingsResponse {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface OverdueDetail {
+  customerId: string;
+  razaoSocial: string;
+  cnpjCpf?: string;
+  telefone?: string;
+  cidade?: string;
+  uf?: string;
+  invoiceNumero: string;
+  invoiceSerie: string;
+  parcela: number;
+  dataVencimento: string;
+  diasAtraso: number;
+  valorOriginal: number;
+  valorReceber: number;
+  juros: number;
+  multa: number;
+}
+
+export interface TopDebtor {
+  position: number;
+  customerId: string;
+  razaoSocial: string;
+  cnpjCpf?: string;
+  totalDevido: number;
+  qtdParcelas: number;
+  maiorAtraso: number;
+  percentualTotal: number;
+}
+
+export interface ForecastBucket {
+  faixa: string;
+  total: number;
+  qtd: number;
+}
+
+export interface InvoiceDetail {
+  id: string;
+  numero: string;
+  serie: string;
+  clienteRazaoSocial: string;
+  clienteCnpjCpf?: string;
+  dataEmissao: string;
+  valorTotal: number;
+  qtdParcelas: number;
+  status: string;
+  diasDesdeEmissao: number;
+}
