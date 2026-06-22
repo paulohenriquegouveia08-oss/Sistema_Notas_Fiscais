@@ -26,6 +26,7 @@ import { useCustomer, useUpdateCustomer } from '@/hooks/useCustomers'
 import { useInvoices } from '@/hooks/useInvoices'
 import { useReceivables, useCancelReceivable } from '@/hooks/useReceivables'
 import type { Receivable, Invoice } from '@/types'
+import { formatBRL } from '@/utils/format'
 
 function maskCpfCnpj(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -37,12 +38,6 @@ function maskCpfCnpj(value: string): string {
     '$1.$2.$3/$4-$5'
   )
 }
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'

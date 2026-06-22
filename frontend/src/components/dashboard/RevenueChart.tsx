@@ -13,12 +13,7 @@ import {
 import Card from '@/components/ui/Card'
 import type { MonthlyChartData } from '@/types'
 import { useDashboardChart } from '@/hooks/useDashboard'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload) return null

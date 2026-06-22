@@ -15,11 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  BarChart3,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/reports', label: 'Relatórios', icon: BarChart3 },
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/invoices', label: 'Notas Fiscais', icon: FileText },
   { href: '/pdf-storage', label: 'PDFs', icon: FileArchive },

@@ -16,12 +16,7 @@ import RevenueChart from '@/components/dashboard/RevenueChart'
 import OverdueList from '@/components/dashboard/OverdueList'
 import { useDashboardSummary } from '@/hooks/useDashboard'
 import Spinner from '@/components/ui/Spinner'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 export default function DashboardPage() {
   const { data: summary, isLoading, error } = useDashboardSummary()

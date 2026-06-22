@@ -20,6 +20,7 @@ import { BradescoModule } from './integrations/bradesco/bradesco.module';
 import { AiModule } from './integrations/ai/ai.module';
 import { ServerMonitorModule } from './integrations/server-monitor/server-monitor.module';
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
     AiModule,
     ServerMonitorModule,
     TelegramBotModule,
+    ReportsModule,
   ],
   providers: [
     {

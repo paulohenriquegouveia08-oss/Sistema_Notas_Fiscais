@@ -4,12 +4,7 @@ import { useRouter } from 'next/navigation'
 import Card from '@/components/ui/Card'
 import { useOverdueList } from '@/hooks/useDashboard'
 import Spinner from '@/components/ui/Spinner'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 export default function OverdueList() {
   const router = useRouter()

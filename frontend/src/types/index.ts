@@ -192,3 +192,36 @@ export interface PdfDocument {
   createdAt: string
   updatedAt: string
 }
+
+export interface ReportSummary {
+  totalFaturamento: number
+  totalRecebido: number
+  totalAReceber: number
+  totalAtrasado: number
+  qtdNf: number
+  qtdClientesAtivos: number
+  ticketMedio: number
+}
+
+export interface PeriodData {
+  periodo: string
+  faturamento: number
+  recebido: number
+  qtdNf: number
+  qtdPagamentos: number
+}
+
+export interface CustomerBreakdown {
+  customerId: string
+  razaoSocial: string
+  qtdNf: number
+  totalFaturado: number
+  totalRecebido: number
+  pendente: number
+}
+
+export interface ReportParams {
+  startDate: string
+  endDate: string
+  period?: 'day' | 'week' | 'month'
+}

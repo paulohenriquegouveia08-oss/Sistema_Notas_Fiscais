@@ -10,12 +10,7 @@ import Button from '@/components/ui/Button'
 import { paymentSchema, PaymentFormData } from '@/schemas/payment.schema'
 import { PaymentMethod, Receivable } from '@/types'
 import { usePayReceivable } from '@/hooks/useReceivables'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 interface PaymentModalProps {
   receivable: Receivable | null

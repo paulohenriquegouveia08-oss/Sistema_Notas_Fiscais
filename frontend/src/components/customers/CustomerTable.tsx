@@ -4,12 +4,7 @@ import { useRouter } from 'next/navigation'
 import Table, { Column } from '@/components/ui/Table'
 import type { Customer, PaginatedResponse } from '@/types'
 import { Eye } from 'lucide-react'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 function maskCpfCnpj(value: string): string {
   const digits = value.replace(/\D/g, '')

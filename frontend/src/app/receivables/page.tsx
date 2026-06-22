@@ -9,12 +9,7 @@ import PaymentModal from '@/components/receivables/PaymentModal'
 import { useReceivables, useCancelReceivable, useUnpayReceivable } from '@/hooks/useReceivables'
 import { useDashboardSummary } from '@/hooks/useDashboard'
 import type { Receivable, ReceivableStatus } from '@/types'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 const tabs = [
   { key: '', label: 'Todas' },

@@ -7,12 +7,7 @@ import Table, { Column } from '@/components/ui/Table'
 import Badge from '@/components/ui/Badge'
 import { usePayments } from '@/hooks/useReceivables'
 import type { Payment } from '@/types'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'

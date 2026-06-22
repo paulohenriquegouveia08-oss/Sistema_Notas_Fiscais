@@ -25,12 +25,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
 import { useInvoice } from '@/hooks/useInvoices'
-
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+import { formatBRL } from '@/utils/format'
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
