@@ -483,7 +483,7 @@ export class ReportsService {
           this.getByCustomer(startDate, endDate),
         ]);
 
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
         const chunks: Buffer[] = [];
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -492,24 +492,13 @@ export class ReportsService {
         const today = new Date().toLocaleDateString('pt-BR');
         const empresa = (settings as any).razaoSocial || 'Empresa';
         const cnpj = (settings as any).cnpj || '';
-
-        // === CAPA ===
-        doc.fontSize(24).font('Helvetica-Bold').text('RELATORIO FINANCEIRO', { align: 'center' });
-        doc.moveDown(0.3);
-        doc.fontSize(14).font('Helvetica').text(empresa, { align: 'center' });
-        if (cnpj) doc.fontSize(10).text(`CNPJ: ${cnpj}`, { align: 'center' });
-        doc.moveDown(0.3);
-        doc.fontSize(12).text(`Periodo: ${startDate} a ${endDate}`, { align: 'center' });
-        doc.fontSize(10).text(`Gerado em: ${today}`, { align: 'center' });
-        doc.moveDown(1.5);
-
-        // Linha separadora
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-        doc.moveDown(0.5);
-
-        // === RESUMO EXECUTIVO ===
-        this.drawSectionTitle(doc, 'RESUMO EXECUTIVO');
-        doc.moveDown(0.3);
+        const endereco = [
+          (settings as any).logradouro,
+          (settings as any).numero,
+          (settings as any).bairro,
+          (settings as any).cidade,
+          (settings as any).uf,
+        ].filter(Boolean).join(', ');
 
         const percentConclusao = summary.totalFaturamento > 0
           ? ((summary.totalRecebido / summary.totalFaturamento) * 100).toFixed(1)
@@ -518,62 +507,113 @@ export class ReportsService {
           ? ((summary.totalAtrasado / summary.totalAReceber) * 100).toFixed(1)
           : '0';
 
-        const kpis: Array<[string, string]> = [
-          ['Faturamento do Periodo', `R$ ${summary.totalFaturamento.toFixed(2)}`],
-          ['Total Recebido', `R$ ${summary.totalRecebido.toFixed(2)}`],
-          ['Total a Receber', `R$ ${summary.totalAReceber.toFixed(2)}`],
-          ['Em Atraso', `R$ ${summary.totalAtrasado.toFixed(2)}`],
-          ['Conclusao', `${percentConclusao}%`],
-          ['Inadimplencia', `${percentInadimplencia}%`],
-          ['NFs Emitidas', String(summary.qtdNf)],
-          ['Clientes Ativos', String(summary.qtdClientesAtivos)],
-          ['Ticket Medio', `R$ ${summary.ticketMedio.toFixed(2)}`],
+        // === CAPA ===
+        doc.rect(0, 0, 595, 120).fill('#1a365d');
+        doc.fillColor('white').fontSize(28).font('Helvetica-Bold').text('RELATORIO FINANCEIRO', 50, 35, { align: 'center', width: 495 });
+        doc.fontSize(14).font('Helvetica').text(empresa, 50, 70, { align: 'center', width: 495 });
+        if (cnpj) doc.fontSize(10).text(`CNPJ: ${cnpj}`, 50, 90, { align: 'center', width: 495 });
+
+        doc.fillColor('black');
+        doc.y = 140;
+        doc.fontSize(11).font('Helvetica').text(`Periodo: ${startDate} a ${endDate}`, { align: 'center' });
+        doc.fontSize(9).text(`Gerado em: ${today}`, { align: 'center' });
+        if (endereco) doc.fontSize(8).text(endereco, { align: 'center' });
+        doc.moveDown(1);
+
+        // Cards de resumo visual na capa
+        const cardY = doc.y;
+        const cardWidth = 150;
+        const cardGap = 15;
+        const cards = [
+          { label: 'FATURADO', value: `R$ ${summary.totalFaturamento.toFixed(2)}`, color: '#2b6cb0' },
+          { label: 'RECEBIDO', value: `R$ ${summary.totalRecebido.toFixed(2)}`, color: '#276749' },
+          { label: 'EM ATRASO', value: `R$ ${summary.totalAtrasado.toFixed(2)}`, color: '#c53030' },
         ];
+        cards.forEach((card, i) => {
+          const cx = 50 + i * (cardWidth + cardGap);
+          doc.roundedRect(cx, cardY, cardWidth, 55, 5).fill(card.color);
+          doc.fillColor('white').fontSize(8).font('Helvetica-Bold').text(card.label, cx + 10, cardY + 8, { width: cardWidth - 20 });
+          doc.fontSize(11).font('Helvetica-Bold').text(card.value, cx + 10, cardY + 25, { width: cardWidth - 20 });
+          doc.fillColor('black');
+        });
+        doc.y = cardY + 70;
 
-        this.drawKpiGrid(doc, kpis);
-        doc.moveDown(0.5);
+        // Indicador de inadimplencia
+        const inadCor = parseFloat(percentInadimplencia) > 20 ? '#c53030' : parseFloat(percentInadimplencia) > 10 ? '#d69e2e' : '#276749';
+        doc.roundedRect(50, doc.y, 495, 30, 5).fill(inadCor);
+        doc.fillColor('white').fontSize(10).font('Helvetica-Bold').text(
+          `INADIMPLENCIA: ${percentInadimplencia}% | ${overdueDetailed.length} parcelas atrasadas | ${topDebtors.length} clientes inadimplentes`,
+          60, doc.y + 9, { width: 475 },
+        );
+        doc.fillColor('black');
+        doc.y += 45;
 
-        // Linha separadora
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        // === RESUMO EXECUTIVO ===
+        this.drawSectionTitle(doc, 'RESUMO EXECUTIVO', '#1a365d');
+        doc.moveDown(0.3);
+
+        // Grid de KPIs 3x3
+        const kpisData = [
+          { label: 'Faturamento', value: `R$ ${summary.totalFaturamento.toFixed(2)}`, color: '#2b6cb0' },
+          { label: 'Recebido', value: `R$ ${summary.totalRecebido.toFixed(2)}`, color: '#276749' },
+          { label: 'A Receber', value: `R$ ${summary.totalAReceber.toFixed(2)}`, color: '#d69e2e' },
+          { label: 'Em Atraso', value: `R$ ${summary.totalAtrasado.toFixed(2)}`, color: '#c53030' },
+          { label: 'Conclusao', value: `${percentConclusao}%`, color: '#276749' },
+          { label: 'Inadimplencia', value: `${percentInadimplencia}%`, color: '#c53030' },
+          { label: 'NFs Emitidas', value: String(summary.qtdNf), color: '#2b6cb0' },
+          { label: 'Clientes Ativos', value: String(summary.qtdClientesAtivos), color: '#2b6cb0' },
+          { label: 'Ticket Medio', value: `R$ ${summary.ticketMedio.toFixed(2)}`, color: '#2b6cb0' },
+        ];
+        this.drawKpiCards(doc, kpisData);
         doc.moveDown(0.5);
 
         // === INADIMPLENCIA DETALHADA ===
         if (overdueDetailed.length > 0) {
           this.checkPageBreak(doc, 120);
-          this.drawSectionTitle(doc, 'INADIMPLENCIA DETALHADA');
-          doc.moveDown(0.3);
-          doc.fontSize(8).font('Helvetica').text(
-            `Total de parcelas em atraso: ${overdueDetailed.length} | Valor total em atraso: R$ ${summary.totalAtrasado.toFixed(2)}`,
-          );
+          this.drawSectionTitle(doc, 'INADIMPLENCIA DETALHADA', '#c53030');
           doc.moveDown(0.3);
 
-          const odHeaders = ['Cliente', 'NF', 'Parc', 'Vencimento', 'Dias', 'Valor', 'Juros', 'Multa'];
-          const odWidths = [140, 40, 30, 65, 35, 70, 60, 60];
-          this.drawTableHeader(doc, odHeaders, odWidths);
+          // Resumo visual
+          const totalJuros = overdueDetailed.reduce((s, i) => s + i.juros, 0);
+          const totalMulta = overdueDetailed.reduce((s, i) => s + i.multa, 0);
+          doc.fontSize(8).font('Helvetica').fillColor('#c53030').text(
+            `ATENCAO: ${overdueDetailed.length} parcelas atrasadas | Valor: R$ ${summary.totalAtrasado.toFixed(2)} | Juros: R$ ${totalJuros.toFixed(2)} | Multa: R$ ${totalMulta.toFixed(2)}`,
+          );
+          doc.fillColor('black');
+          doc.moveDown(0.3);
+
+          const odHeaders = ['Cliente', 'NF/Parc', 'Vencimento', 'Dias Atraso', 'Valor', 'Juros', 'Multa'];
+          const odWidths = [140, 55, 65, 60, 80, 55, 55];
+          this.drawTableHeader(doc, odHeaders, odWidths, '#fed7d7');
           doc.moveDown(0.2);
 
           doc.font('Helvetica').fontSize(7);
-          for (const item of overdueDetailed) {
+          for (let idx = 0; idx < overdueDetailed.length; idx++) {
+            const item = overdueDetailed[idx];
             if (doc.y > 740) {
               doc.addPage();
-              this.drawTableHeader(doc, odHeaders, odWidths);
+              this.drawTableHeader(doc, odHeaders, odWidths, '#fed7d7');
               doc.moveDown(0.2);
               doc.font('Helvetica').fontSize(7);
             }
             const y = doc.y;
+            if (idx % 2 === 0) doc.rect(50, y - 2, odWidths.reduce((a, b) => a + b, 0), 12).fill('#fff5f5');
+            doc.fillColor('black');
             let x = 50;
+            const diasColor = item.diasAtraso > 90 ? '#c53030' : item.diasAtraso > 30 ? '#d69e2e' : '#276749';
             const vals = [
               item.razaoSocial.substring(0, 22),
-              `${item.invoiceNumero}/${item.invoiceSerie}`,
-              String(item.parcela),
+              `${item.invoiceNumero}/${item.parcela}`,
               item.dataVencimento,
-              `${item.diasAtraso}d`,
+              `${item.diasAtraso} dias`,
               `R$ ${item.valorReceber.toFixed(2)}`,
               `R$ ${item.juros.toFixed(2)}`,
               `R$ ${item.multa.toFixed(2)}`,
             ];
             vals.forEach((v, i) => {
+              if (i === 3) doc.fillColor(diasColor).font('Helvetica-Bold');
               doc.text(v, x, y, { width: odWidths[i], align: 'left' });
+              if (i === 3) doc.fillColor('black').font('Helvetica');
               x += odWidths[i];
             });
             doc.y = y + 10;
@@ -584,23 +624,26 @@ export class ReportsService {
         // === RANKING DE DEVEDORES ===
         if (topDebtors.length > 0) {
           this.checkPageBreak(doc, 100);
-          this.drawSectionTitle(doc, 'RANKING DE DEVEDORES');
+          this.drawSectionTitle(doc, 'RANKING DE DEVEDORES', '#c53030');
           doc.moveDown(0.3);
 
           const tdHeaders = ['#', 'Cliente', 'CNPJ/CPF', 'Total Devido', 'Parcelas', 'Maior Atraso', '% do Total'];
           const tdWidths = [20, 140, 90, 80, 45, 70, 60];
-          this.drawTableHeader(doc, tdHeaders, tdWidths);
+          this.drawTableHeader(doc, tdHeaders, tdWidths, '#fed7d7');
           doc.moveDown(0.2);
 
           doc.font('Helvetica').fontSize(8);
-          for (const item of topDebtors) {
+          for (let idx = 0; idx < topDebtors.length; idx++) {
+            const item = topDebtors[idx];
             if (doc.y > 740) {
               doc.addPage();
-              this.drawTableHeader(doc, tdHeaders, tdWidths);
+              this.drawTableHeader(doc, tdHeaders, tdWidths, '#fed7d7');
               doc.moveDown(0.2);
               doc.font('Helvetica').fontSize(8);
             }
             const y = doc.y;
+            if (idx % 2 === 0) doc.rect(50, y - 2, tdWidths.reduce((a, b) => a + b, 0), 14).fill('#fff5f5');
+            doc.fillColor('black');
             let x = 50;
             const vals = [
               String(item.position),
@@ -621,25 +664,45 @@ export class ReportsService {
         }
 
         // === PREVISAO DE RECEBIMENTO ===
-        this.checkPageBreak(doc, 100);
-        this.drawSectionTitle(doc, 'PREVISAO DE RECEBIMENTO');
+        this.checkPageBreak(doc, 120);
+        this.drawSectionTitle(doc, 'PREVISAO DE RECEBIMENTO', '#2b6cb0');
         doc.moveDown(0.3);
 
         const totalForecast = forecast.reduce((s, b) => s + b.total, 0);
         const totalQtdForecast = forecast.reduce((s, b) => s + b.qtd, 0);
-        doc.fontSize(8).font('Helvetica').text(
-          `Total a receber (pendente): R$ ${totalForecast.toFixed(2)} | ${totalQtdForecast} parcelas`,
-        );
-        doc.moveDown(0.3);
+
+        // Cards de previsao
+        const prevY = doc.y;
+        const prevCards = [
+          { label: 'Total Previsto', value: `R$ ${totalForecast.toFixed(2)}`, color: '#2b6cb0' },
+          { label: 'Total Parcelas', value: String(totalQtdForecast), color: '#276749' },
+        ];
+        prevCards.forEach((card, i) => {
+          const cx = 50 + i * 200;
+          doc.roundedRect(cx, prevY, 180, 35, 3).fill(card.color);
+          doc.fillColor('white').fontSize(7).font('Helvetica-Bold').text(card.label, cx + 8, prevY + 5, { width: 164 });
+          doc.fontSize(10).font('Helvetica-Bold').text(card.value, cx + 8, prevY + 18, { width: 164 });
+          doc.fillColor('black');
+        });
+        doc.y = prevY + 45;
 
         const fcHeaders = ['Faixa', 'Qtd Parcelas', 'Valor Previsto', '% do Total'];
         const fcWidths = [150, 100, 120, 100];
-        this.drawTableHeader(doc, fcHeaders, fcWidths);
+        this.drawTableHeader(doc, fcHeaders, fcWidths, '#bee3f8');
         doc.moveDown(0.2);
 
         doc.font('Helvetica').fontSize(9);
-        for (const bucket of forecast) {
+        for (let idx = 0; idx < forecast.length; idx++) {
+          const bucket = forecast[idx];
+          if (doc.y > 740) {
+            doc.addPage();
+            this.drawTableHeader(doc, fcHeaders, fcWidths, '#bee3f8');
+            doc.moveDown(0.2);
+            doc.font('Helvetica').fontSize(9);
+          }
           const y = doc.y;
+          if (idx % 2 === 0) doc.rect(50, y - 2, fcWidths.reduce((a, b) => a + b, 0), 14).fill('#ebf8ff');
+          doc.fillColor('black');
           let x = 50;
           const pct = totalForecast > 0 ? ((bucket.total / totalForecast) * 100).toFixed(1) : '0';
           const vals = [
@@ -660,24 +723,28 @@ export class ReportsService {
         if (customerData.length > 0) {
           this.checkPageBreak(doc, 100);
           doc.addPage();
-          this.drawSectionTitle(doc, 'DETALHAMENTO POR CLIENTE');
+          this.drawSectionTitle(doc, 'DETALHAMENTO POR CLIENTE', '#276749');
           doc.moveDown(0.3);
 
           const cdHeaders = ['Cliente', 'NFs', 'Faturado', 'Recebido', 'Pendente'];
           const cdWidths = [180, 40, 90, 90, 90];
-          this.drawTableHeader(doc, cdHeaders, cdWidths);
+          this.drawTableHeader(doc, cdHeaders, cdWidths, '#c6f6d5');
           doc.moveDown(0.2);
 
           doc.font('Helvetica').fontSize(8);
-          for (const c of customerData) {
+          for (let idx = 0; idx < customerData.length; idx++) {
+            const c = customerData[idx];
             if (doc.y > 740) {
               doc.addPage();
-              this.drawTableHeader(doc, cdHeaders, cdWidths);
+              this.drawTableHeader(doc, cdHeaders, cdWidths, '#c6f6d5');
               doc.moveDown(0.2);
               doc.font('Helvetica').fontSize(8);
             }
             const y = doc.y;
+            if (idx % 2 === 0) doc.rect(50, y - 2, cdWidths.reduce((a, b) => a + b, 0), 12).fill('#f0fff4');
+            doc.fillColor('black');
             let x = 50;
+            const pendColor = c.pendente > 0 ? '#c53030' : '#276749';
             const vals = [
               c.razaoSocial.substring(0, 30),
               String(c.qtdNf),
@@ -686,7 +753,9 @@ export class ReportsService {
               `R$ ${c.pendente.toFixed(2)}`,
             ];
             vals.forEach((v, i) => {
+              if (i === 4 && c.pendente > 0) doc.fillColor(pendColor).font('Helvetica-Bold');
               doc.text(v, x, y, { width: cdWidths[i], align: 'left' });
+              if (i === 4) { doc.fillColor('black').font('Helvetica'); }
               x += cdWidths[i];
             });
             doc.y = y + 12;
@@ -697,24 +766,33 @@ export class ReportsService {
         if (invoices.length > 0) {
           this.checkPageBreak(doc, 100);
           doc.addPage();
-          this.drawSectionTitle(doc, 'NOTAS FISCAIS DO PERIODO');
+          this.drawSectionTitle(doc, 'NOTAS FISCAIS DO PERIODO', '#2b6cb0');
+          doc.moveDown(0.3);
+
+          doc.fontSize(8).font('Helvetica').text(
+            `Total: ${invoices.length} NFs | Valor total: R$ ${invoices.reduce((s, i) => s + i.valorTotal, 0).toFixed(2)}`,
+          );
           doc.moveDown(0.3);
 
           const nfHeaders = ['NF/Serie', 'Cliente', 'Emissao', 'Valor', 'Parcelas', 'Status', 'Dias'];
           const nfWidths = [55, 150, 65, 75, 45, 60, 40];
-          this.drawTableHeader(doc, nfHeaders, nfWidths);
+          this.drawTableHeader(doc, nfHeaders, nfWidths, '#bee3f8');
           doc.moveDown(0.2);
 
           doc.font('Helvetica').fontSize(7);
-          for (const nf of invoices) {
+          for (let idx = 0; idx < invoices.length; idx++) {
+            const nf = invoices[idx];
             if (doc.y > 740) {
               doc.addPage();
-              this.drawTableHeader(doc, nfHeaders, nfWidths);
+              this.drawTableHeader(doc, nfHeaders, nfWidths, '#bee3f8');
               doc.moveDown(0.2);
               doc.font('Helvetica').fontSize(7);
             }
             const y = doc.y;
+            if (idx % 2 === 0) doc.rect(50, y - 2, nfWidths.reduce((a, b) => a + b, 0), 10).fill('#ebf8ff');
+            doc.fillColor('black');
             let x = 50;
+            const statusColor = nf.status === 'AUTHORIZED' ? '#276749' : nf.status === 'CANCELLED' ? '#c53030' : '#d69e2e';
             const vals = [
               `${nf.numero}/${nf.serie}`,
               nf.clienteRazaoSocial.substring(0, 24),
@@ -725,7 +803,9 @@ export class ReportsService {
               `${nf.diasDesdeEmissao}d`,
             ];
             vals.forEach((v, i) => {
+              if (i === 5) doc.fillColor(statusColor).font('Helvetica-Bold');
               doc.text(v, x, y, { width: nfWidths[i], align: 'left' });
+              if (i === 5) { doc.fillColor('black').font('Helvetica'); }
               x += nfWidths[i];
             });
             doc.y = y + 10;
@@ -733,13 +813,15 @@ export class ReportsService {
         }
 
         // === RODAPE ===
-        doc.moveDown(2);
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-        doc.moveDown(0.3);
-        doc.fontSize(7).font('Helvetica').text(
-          `Documento gerado automaticamente pelo Sistema Financeiro | ${today}`,
-          { align: 'center' },
-        );
+        const totalPages = doc.bufferedPageRange().count;
+        for (let i = 0; i < totalPages; doc.switchToPage(i), i++) {
+          doc.fontSize(7).font('Helvetica').fillColor('#718096');
+          doc.text(
+            `Sistema Financeiro | Pagina ${i + 1} de ${totalPages} | Gerado em ${today}`,
+            50, doc.page.height - 30, { align: 'center', width: 495 },
+          );
+          doc.fillColor('black');
+        }
 
         doc.end();
       } catch (error: any) {
@@ -749,33 +831,46 @@ export class ReportsService {
     });
   }
 
-  private drawSectionTitle(doc: PDFKit.PDFDocument, title: string) {
-    doc.fontSize(13).font('Helvetica-Bold').text(title);
-    doc.moveDown(0.1);
-    doc.fontSize(7).font('Helvetica').text('_'.repeat(80));
-    doc.moveDown(0.2);
+  private drawSectionTitle(doc: PDFKit.PDFDocument, title: string, color: string = '#1a365d') {
+    const y = doc.y;
+    doc.rect(50, y - 2, 495, 20).fill(color);
+    doc.fillColor('white').fontSize(11).font('Helvetica-Bold').text(title, 58, y + 2, { width: 480 });
+    doc.fillColor('black');
+    doc.y = y + 22;
   }
 
-  private drawKpiGrid(doc: PDFKit.PDFDocument, kpis: Array<[string, string]>) {
-    doc.fontSize(8).font('Helvetica');
-    for (const [label, value] of kpis) {
-      const y = doc.y;
-      doc.font('Helvetica-Bold').text(`${label}: `, 50, y, { continued: true, width: 150 });
-      doc.font('Helvetica').text(value);
-      doc.y = y + 12;
+  private drawKpiCards(doc: PDFKit.PDFDocument, kpis: Array<{ label: string; value: string; color: string }>) {
+    const cols = 3;
+    const cardW = 155;
+    const cardH = 45;
+    const gap = 10;
+    const startX = 50;
+
+    for (let i = 0; i < kpis.length; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = startX + col * (cardW + gap);
+      const y = doc.y + row * (cardH + gap);
+
+      doc.roundedRect(x, y, cardW, cardH, 4).fill(kpis[i].color);
+      doc.fillColor('white').fontSize(7).font('Helvetica-Bold').text(kpis[i].label, x + 8, y + 6, { width: cardW - 16 });
+      doc.fontSize(12).font('Helvetica-Bold').text(kpis[i].value, x + 8, y + 22, { width: cardW - 16 });
+      doc.fillColor('black');
     }
+    doc.y += Math.ceil(kpis.length / cols) * (cardH + gap) + 5;
   }
 
-  private drawTableHeader(doc: PDFKit.PDFDocument, headers: string[], widths: number[]) {
+  private drawTableHeader(doc: PDFKit.PDFDocument, headers: string[], widths: number[], bgColor: string = '#edf2f7') {
     doc.fontSize(8).font('Helvetica-Bold');
     let x = 50;
     const y = doc.y;
-    doc.rect(50, y - 2, widths.reduce((a, b) => a + b, 0), 14).fill('#f0f0f0');
-    doc.fillColor('black');
+    doc.rect(50, y - 2, widths.reduce((a, b) => a + b, 0), 14).fill(bgColor);
+    doc.fillColor('#1a365d');
     headers.forEach((h, i) => {
       doc.text(h, x, y, { width: widths[i], align: 'left' });
       x += widths[i];
     });
+    doc.fillColor('black');
     doc.y = y + 14;
   }
 
