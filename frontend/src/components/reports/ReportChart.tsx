@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import {
   BarChart,
   Bar,
@@ -12,11 +13,12 @@ import {
 } from 'recharts'
 import Card from '@/components/ui/Card'
 import { formatBRL } from '@/utils/format'
-import type { PeriodData } from '@/types'
+import type { PeriodData, PeriodStatusData } from '@/types'
 
 interface ReportChartProps {
   data: PeriodData[] | undefined
   isLoading: boolean
+  periodStatusData?: PeriodStatusData[]
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -33,7 +35,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-export default function ReportChart({ data, isLoading }: ReportChartProps) {
+export default function ReportChart({ data, isLoading, periodStatusData }: ReportChartProps) {
+  const chartData = useMemo(() => {
+    if (!data) return []
+    if (!periodStatusData || periodStatusData.length === 0) return data
+
+    const statusMap = new Map<string, PeriodStatusData>()
+    periodStatusData.forEach((item) => statusMap.set(item.periodo, item))
+
+    return data.map((item) => ({
+      ...item,
+      atrasado: statusMap.get(item.periodo)?.atrasado ?? 0,
+      aberto: statusMap.get(item.periodo)?.aberto ?? 0,
+      pago: statusMap.get(item.periodo)?.pago ?? 0,
+    }))
+  }, [data, periodStatusData])
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -65,7 +82,7 @@ export default function ReportChart({ data, isLoading }: ReportChartProps) {
       </h3>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} barGap={2}>
+          <BarChart data={chartData} barGap={2}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="#2A2D3A"
@@ -105,6 +122,29 @@ export default function ReportChart({ data, isLoading }: ReportChartProps) {
               fill="#22c55e"
               radius={[4, 4, 0, 0]}
             />
+            {periodStatusData && periodStatusData.length > 0 && (
+              <>
+                <Bar
+                  dataKey="pago"
+                  name="Pago"
+                  fill="#22c55e"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.6}
+                />
+                <Bar
+                  dataKey="aberto"
+                  name="Em Aberto"
+                  fill="#F59E0B"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="atrasado"
+                  name="Em Atraso"
+                  fill="#EF4444"
+                  radius={[4, 4, 0, 0]}
+                />
+              </>
+            )}
           </BarChart>
         </ResponsiveContainer>
       </div>

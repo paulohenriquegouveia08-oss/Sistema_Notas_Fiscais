@@ -225,3 +225,10 @@ export interface ReportParams {
   endDate: string
   period?: 'day' | 'week' | 'month'
 }
+
+export interface PeriodStatusData {
+  periodo: string
+  atrasado: number
+  aberto: number
+  pago: number
+}

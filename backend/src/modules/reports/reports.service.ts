@@ -392,6 +392,54 @@ export class ReportsService {
     }
   }
 
+  async getByPeriodAndStatus(
+    startDate: string,
+    endDate: string,
+    period: string,
+  ): Promise<Array<{ periodo: string; atrasado: number; aberto: number; pago: number }>> {
+    try {
+      const validPeriods = ['day', 'week', 'month'];
+      const p = validPeriods.includes(period) ? period : 'month';
+
+      const result = await this.receivableRepo
+        .createQueryBuilder('r')
+        .select(`date_trunc('${p}', r.dataVencimento)`, 'periodo')
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN r.status = :overdue THEN r.valorReceber ELSE 0 END), 0)`,
+          'atrasado',
+        )
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN r.status = :pending THEN r.valorReceber ELSE 0 END), 0)`,
+          'aberto',
+        )
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN r.status = :paid THEN r.valorPago ELSE 0 END), 0)`,
+          'pago',
+        )
+        .where('r.dataVencimento >= :startDate', { startDate })
+        .andWhere('r.dataVencimento <= :endDate', { endDate })
+        .andWhere('r.status != :cancelled', { cancelled: ReceivableStatus.CANCELLED })
+        .setParameters({
+          overdue: ReceivableStatus.OVERDUE,
+          pending: ReceivableStatus.PENDING,
+          paid: ReceivableStatus.PAID,
+        })
+        .groupBy('periodo')
+        .orderBy('periodo', 'ASC')
+        .getRawMany();
+
+      return result.map((row: any) => ({
+        periodo: this.formatPeriodKey(row.periodo, p),
+        atrasado: parseFloat(row.atrasado || '0'),
+        aberto: parseFloat(row.aberto || '0'),
+        pago: parseFloat(row.pago || '0'),
+      }));
+    } catch (error: any) {
+      this.logger.error(`Erro ao buscar dados por período e status: ${error.message}`);
+      return [];
+    }
+  }
+
   async getInvoicesByPeriod(startDate: string, endDate: string): Promise<InvoiceDetail[]> {
     try {
       const today = new Date();

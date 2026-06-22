@@ -21,6 +21,16 @@ export class ReportsController {
     return this.reportsService.getByPeriod(dto.startDate, dto.endDate, dto.period || 'month');
   }
 
+  @Get('by-period-status')
+  @ApiOperation({ summary: 'Dados de status (atrasado/aberto/pago) agrupados por período' })
+  async getByPeriodStatus(@Query() dto: DateRangeDto) {
+    return this.reportsService.getByPeriodAndStatus(
+      dto.startDate,
+      dto.endDate,
+      dto.period || 'month',
+    );
+  }
+
   @Get('by-customer')
   @ApiOperation({ summary: 'Dados agrupados por cliente' })
   async getByCustomer(@Query() dto: DateRangeDto) {
