@@ -15,6 +15,8 @@ const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'pdf-storage');
 
 export interface GeneratePdfOptions {
   overrideDateTime?: string | Date;
+  overrideProductDescription?: string;
+  overrideProductCode?: string;
   outputDir?: string;
   persistDocument?: boolean;
   originalNameSuffix?: string;
@@ -166,7 +168,7 @@ const ML = 14;
 const MR = 14;
 const PW = PG - ML - MR; // 567
 
-const LBL = '#555555';
+const LBL = '#000000';
 const TXT = '#000000';
 
 // ── Draw helpers ────────────────────────────────────────
@@ -269,6 +271,15 @@ export class PdfGeneratorService {
     });
 
     const xmlData = this.parseFullXml(invoice.xmlCompleto);
+
+    let effectiveProducts = [...products];
+    if (options.overrideProductDescription) {
+      effectiveProducts = effectiveProducts.map((p) => ({ ...p, descricao: options.overrideProductDescription }));
+    }
+    if (options.overrideProductCode) {
+      effectiveProducts = effectiveProducts.map((p) => ({ ...p, codigo: options.overrideProductCode }));
+    }
+
     const natOp = xmlData?.natOp || '';
     const verProc = xmlData?.verProc || '';
     const xmlEmit = xmlData?.emit || {};
@@ -336,11 +347,18 @@ export class PdfGeneratorService {
     // NF-e box (right) — spans full height y=14..46
     box(doc, ML + 478, 14, 87, 32);
     text(doc, 'NF-e', ML + 478 + 2, 15, 5, { color: LBL });
-    text(doc, `Nº ${invoice.numero}`, ML + 478 + 2, 24, 9);
+    text(doc, `Nº ${invoice.numero}`, ML + 478, 24, 9, { align: 'center', w: 87 });
     text(doc, `SÉRIE: ${invoice.serie}`, ML + 478 + 2, 36, 6);
 
     // Separator line
-    doc.moveTo(ML, 47).lineTo(ML + PW, 47).lineWidth(0.25).stroke();
+    doc.save();
+    doc.dash(1.6, { space: 1.8 })
+      .moveTo(ML, 47)
+      .lineTo(ML + PW, 47)
+      .lineWidth(0.7)
+      .stroke();
+    doc.undash();
+    doc.restore();
 
     // ═══════════════ DANFE HEADER (3 columns) ═══════════════
     // Box around entire header
@@ -350,13 +368,13 @@ export class PdfGeneratorService {
     const emitX = ML;
     const emitW = 271;
     const emitNameLines = splitName(emitNome);
-    const emitNameY = emitNameLines.length > 1 ? 59 : 64;
+    const emitNameY = emitNameLines.length > 1 ? 57 : 62;
     emitNameLines.forEach((line, index) => {
-      text(doc, line, emitX, emitNameY + index * 10, 9, { align: 'center', w: emitW, font: 'Helvetica-Bold' });
+      text(doc, line, emitX, emitNameY + index * 11, 10.2, { align: 'center', w: emitW, font: 'Helvetica-Bold' });
     });
-    text(doc, emitEnd, emitX, 84, 7, { align: 'center', w: emitW });
-    text(doc, emitCidadeUf, emitX, 95, 7, { align: 'center', w: emitW });
-    text(doc, `CEP: ${emitCep}        FONE: ${emitFone}`, emitX, 106, 7, { align: 'center', w: emitW });
+    text(doc, emitEnd, emitX, 84, 7.8, { align: 'center', w: emitW });
+    text(doc, emitCidadeUf, emitX, 96, 7.8, { align: 'center', w: emitW });
+    text(doc, `CEP: ${emitCep}        FONE: ${emitFone}`, emitX, 108, 7.8, { align: 'center', w: emitW });
 
     // MIDDLE: DANFE subtitle
     const midX = ML + 271;
@@ -582,7 +600,7 @@ export class PdfGeneratorService {
     }
 
     let ry = headerBottomY;
-    for (const p of products) {
+    for (const p of effectiveProducts) {
       if (ry + rowH > productBottomY) break;
       const cstVal = asText(p.cst).padStart(4, '0');
       doc.moveTo(ML, ry + rowH).lineTo(ML + tableW, ry + rowH).lineWidth(0.25).stroke();

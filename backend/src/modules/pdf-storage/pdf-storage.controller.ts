@@ -55,8 +55,14 @@ export class PdfStorageController {
 
   @Post('date-editor')
   @ApiOperation({ summary: 'Gerar PDF com data alterada' })
-  async generateWithEditedDate(@Body() body: { invoiceId: string; date: string; time?: string }) {
+  async generateWithEditedDate(@Body() body: { invoiceId: string; date: string; time?: string; productDescription?: string; productCode?: string }) {
     return this.service.generateWithEditedDate(body);
+  }
+
+  @Get('date-editor/products/:invoiceId')
+  @ApiOperation({ summary: 'Buscar produtos do XML de uma nota' })
+  async getProductsFromInvoice(@Param('invoiceId') invoiceId: string) {
+    return this.service.getProductsFromInvoice(invoiceId);
   }
 
   @Get('date-editor/:fileName')

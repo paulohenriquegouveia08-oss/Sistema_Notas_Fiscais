@@ -16,6 +16,8 @@ export interface DateEditRequest {
   invoiceId: string;
   date: string;
   time?: string;
+  productDescription?: string;
+  productCode?: string;
 }
 
 export interface DateEditResult {
@@ -150,6 +152,8 @@ export class PdfStorageService {
       invoice.receivables || [],
       {
         overrideDateTime,
+        overrideProductDescription: input.productDescription,
+        overrideProductCode: input.productCode,
         outputDir: DATE_EDITS_DIR,
         persistDocument: false,
       },
@@ -190,6 +194,15 @@ export class PdfStorageService {
     }
 
     return fs.existsSync(resolvedFile) ? resolvedFile : null;
+  }
+
+  async getProductsFromInvoice(invoiceId: string) {
+    const invoice = await this.invoiceRepo.findOne({ where: { id: invoiceId } });
+    if (!invoice) throw new NotFoundException('Nota fiscal não encontrada');
+    if (!invoice.xmlCompleto) throw new BadRequestException('A nota não possui XML');
+
+    const { products } = this.pdfGenerator.parseProducts(invoice.xmlCompleto);
+    return products;
   }
 
   private normalizeDate(value: string): string {

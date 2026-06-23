@@ -57,12 +57,34 @@ export default function PdfDateEditorPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('')
   const [date, setDate] = useState(todayInputValue)
   const [time, setTime] = useState('')
+  const [productDescription, setProductDescription] = useState('')
+  const [productCode, setProductCode] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(timer)
   }, [search])
+
+  useEffect(() => {
+    if (!selectedInvoiceId) return
+    api
+      .get<any[]>(`/pdf-storage/date-editor/products/${selectedInvoiceId}`)
+      .then((res) => {
+        const first = res.data?.[0]
+        if (first) {
+          setProductDescription(first.descricao || '')
+          setProductCode(first.codigo || '')
+        } else {
+          setProductDescription('')
+          setProductCode('')
+        }
+      })
+      .catch(() => {
+        setProductDescription('')
+        setProductCode('')
+      })
+  }, [selectedInvoiceId])
 
   const { data: invoicesData, isLoading } = useInvoices({
     page: 1,
@@ -85,6 +107,8 @@ export default function PdfDateEditorPage() {
         invoiceId: selectedInvoiceId,
         date,
         time: time || undefined,
+        productDescription: productDescription || undefined,
+        productCode: productCode || undefined,
       })
       return data
     },
@@ -114,6 +138,8 @@ export default function PdfDateEditorPage() {
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoiceId(invoice.id)
     setGeneratedPdf(null)
+    setProductDescription('')
+    setProductCode('')
   }
 
   return (
@@ -240,6 +266,36 @@ export default function PdfDateEditorPage() {
                   className="input-field"
                 />
               </label>
+
+              {selectedInvoiceId && (
+                <>
+                  <label className="block">
+                    <span className="block text-sm text-text-muted mb-1">
+                      Código do produto
+                    </span>
+                    <input
+                      type="text"
+                      value={productCode}
+                      onChange={(event) => setProductCode(event.target.value)}
+                      placeholder="Ex: 001"
+                      className="input-field"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="block text-sm text-text-muted mb-1">
+                      Descrição do produto
+                    </span>
+                    <input
+                      type="text"
+                      value={productDescription}
+                      onChange={(event) => setProductDescription(event.target.value)}
+                      placeholder="Ex: Bateria 12V 60Ah"
+                      className="input-field"
+                    />
+                  </label>
+                </>
+              )}
             </div>
 
             <button
