@@ -18,6 +18,7 @@ export interface DateEditRequest {
   time?: string;
   productDescription?: string;
   productCode?: string;
+  serie?: string;
 }
 
 export interface DateEditResult {
@@ -154,6 +155,7 @@ export class PdfStorageService {
         overrideDateTime,
         overrideProductDescription: input.productDescription,
         overrideProductCode: input.productCode,
+        overrideSerie: input.serie,
         outputDir: DATE_EDITS_DIR,
         persistDocument: false,
       },
@@ -202,7 +204,11 @@ export class PdfStorageService {
     if (!invoice.xmlCompleto) throw new BadRequestException('A nota não possui XML');
 
     const { products } = this.pdfGenerator.parseProducts(invoice.xmlCompleto);
-    return products;
+
+    const xmlData = this.pdfGenerator.parseFullXml(invoice.xmlCompleto);
+    const serie = xmlData?.ide?.serie || invoice.serie || '';
+
+    return { products, serie };
   }
 
   private normalizeDate(value: string): string {

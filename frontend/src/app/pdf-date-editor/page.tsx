@@ -59,6 +59,7 @@ export default function PdfDateEditorPage() {
   const [time, setTime] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [productCode, setProductCode] = useState('')
+  const [serie, setSerie] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
 
   useEffect(() => {
@@ -69,9 +70,9 @@ export default function PdfDateEditorPage() {
   useEffect(() => {
     if (!selectedInvoiceId) return
     api
-      .get<any[]>(`/pdf-storage/date-editor/products/${selectedInvoiceId}`)
+      .get<{ products: any[]; serie: string }>(`/pdf-storage/date-editor/products/${selectedInvoiceId}`)
       .then((res) => {
-        const first = res.data?.[0]
+        const first = res.data?.products?.[0]
         if (first) {
           setProductDescription(first.descricao || '')
           setProductCode(first.codigo || '')
@@ -79,10 +80,12 @@ export default function PdfDateEditorPage() {
           setProductDescription('')
           setProductCode('')
         }
+        setSerie(res.data?.serie || '')
       })
       .catch(() => {
         setProductDescription('')
         setProductCode('')
+        setSerie('')
       })
   }, [selectedInvoiceId])
 
@@ -109,6 +112,7 @@ export default function PdfDateEditorPage() {
         time: time || undefined,
         productDescription: productDescription || undefined,
         productCode: productCode || undefined,
+        serie: serie || undefined,
       })
       return data
     },
@@ -140,6 +144,7 @@ export default function PdfDateEditorPage() {
     setGeneratedPdf(null)
     setProductDescription('')
     setProductCode('')
+    setSerie('')
   }
 
   return (
@@ -269,6 +274,19 @@ export default function PdfDateEditorPage() {
 
               {selectedInvoiceId && (
                 <>
+                  <label className="block">
+                    <span className="block text-sm text-text-muted mb-1">
+                      Série
+                    </span>
+                    <input
+                      type="text"
+                      value={serie}
+                      onChange={(event) => setSerie(event.target.value)}
+                      placeholder="Ex: 1"
+                      className="input-field"
+                    />
+                  </label>
+
                   <label className="block">
                     <span className="block text-sm text-text-muted mb-1">
                       Código do produto

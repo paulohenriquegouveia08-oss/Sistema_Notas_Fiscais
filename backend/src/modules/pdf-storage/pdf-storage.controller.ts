@@ -55,7 +55,7 @@ export class PdfStorageController {
 
   @Post('date-editor')
   @ApiOperation({ summary: 'Gerar PDF com data alterada' })
-  async generateWithEditedDate(@Body() body: { invoiceId: string; date: string; time?: string; productDescription?: string; productCode?: string }) {
+  async generateWithEditedDate(@Body() body: { invoiceId: string; date: string; time?: string; productDescription?: string; productCode?: string; serie?: string }) {
     return this.service.generateWithEditedDate(body);
   }
 

@@ -17,6 +17,7 @@ export interface GeneratePdfOptions {
   overrideDateTime?: string | Date;
   overrideProductDescription?: string;
   overrideProductCode?: string;
+  overrideSerie?: string;
   outputDir?: string;
   persistDocument?: boolean;
   originalNameSuffix?: string;
@@ -280,6 +281,8 @@ export class PdfGeneratorService {
       effectiveProducts = effectiveProducts.map((p) => ({ ...p, codigo: options.overrideProductCode }));
     }
 
+    const effectiveSerie = options.overrideSerie || invoice.serie;
+
     const natOp = xmlData?.natOp || '';
     const verProc = xmlData?.verProc || '';
     const xmlEmit = xmlData?.emit || {};
@@ -320,7 +323,11 @@ export class PdfGeneratorService {
     const saidaTime = overrideDateTime?.time || fmtXmlTime(saidaDateTime) || (invoice.dataEntrada ? fmtTime(invoice.dataEntrada) : '');
 
     const chave = invoice.chaveAcesso || '';
-    const chaveXML = firstText(xmlData?.chave, chave);
+    let chaveXML = firstText(xmlData?.chave, chave);
+    if (options.overrideSerie && chaveXML.length === 44) {
+      const serie2 = options.overrideSerie.padStart(2, '0').slice(0, 2);
+      chaveXML = chaveXML.slice(0, 22) + serie2 + chaveXML.slice(24);
+    }
     const chaveFmt = formatChave(chaveXML);
     const protocol = protocolo || xmlData?.protocolo || '';
     const hasISSQN = Boolean(xmlData?.hasISSQN);
@@ -348,7 +355,7 @@ export class PdfGeneratorService {
     box(doc, ML + 478, 14, 87, 32);
     text(doc, 'NF-e', ML + 478 + 2, 15, 5, { color: LBL });
     text(doc, `Nº ${invoice.numero}`, ML + 478, 24, 9, { align: 'center', w: 87 });
-    text(doc, `SÉRIE: ${invoice.serie}`, ML + 478 + 2, 36, 6);
+    text(doc, `SÉRIE: ${effectiveSerie}`, ML + 478 + 2, 36, 6);
 
     // Separator line
     doc.save();
@@ -399,7 +406,7 @@ export class PdfGeneratorService {
 
     // Nº + SÉRIE + FOLHA
     text(doc, `Nº ${invoice.numero}`, midX + 2, 120, 7);
-    text(doc, `SÉRIE: ${invoice.serie}`, midX + 2, 128, 6);
+    text(doc, `SÉRIE: ${effectiveSerie}`, midX + 2, 128, 6);
     text(doc, 'FOLHA 1 / 1', midX + 2, 136, 6);
 
     // RIGHT: Chave de acesso
@@ -739,7 +746,7 @@ export class PdfGeneratorService {
     }
   }
 
-  private parseFullXml(xmlCompleto?: string): any {
+  parseFullXml(xmlCompleto?: string): any {
     if (!xmlCompleto) return {};
     try {
       const parsed = this.xmlParser.parse(xmlCompleto);
