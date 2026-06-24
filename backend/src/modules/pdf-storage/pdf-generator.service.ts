@@ -510,7 +510,7 @@ export class PdfGeneratorService {
     text(doc, 'FATURA / DUPLICATA', ML + 2, fatY + 1, 6);
     const dupColW = 56;
     let dupX = ML;
-    const isAvista = invoice.tipoPagamento === '1';
+    const isAvista = invoice.tipoPagamento === '1' || invoice.tipoPagamento === 'AVISTA' || (invoice.qtdeParcelas || 0) <= 1 || sortedRec.length <= 1;
     const recsToPrint = isAvista ? [] : sortedRec;
     for (const rec of recsToPrint) {
       const parcelNo = String(rec.parcela).padStart(3, '0');
