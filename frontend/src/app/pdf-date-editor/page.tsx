@@ -131,7 +131,7 @@ export default function PdfDateEditorPage() {
   })
 
   const invoices = useMemo(
-    () => (invoicesData?.data || []).filter((invoice) => invoice.pdfPath),
+    () => invoicesData?.data || [],
     [invoicesData?.data]
   )
 
@@ -216,9 +216,10 @@ export default function PdfDateEditorPage() {
             </div>
 
             <div className="border border-dark-border rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[96px_minmax(0,1fr)_120px_120px] gap-3 px-4 py-2 bg-dark-bg text-xs font-medium text-text-muted">
+              <div className="grid grid-cols-[96px_minmax(0,1fr)_80px_100px_100px] gap-3 px-4 py-2 bg-dark-bg text-xs font-medium text-text-muted">
                 <span>Nota</span>
                 <span>Cliente</span>
+                <span>Tipo</span>
                 <span>Emissão</span>
                 <span className="text-right">Valor</span>
               </div>
@@ -231,18 +232,20 @@ export default function PdfDateEditorPage() {
                   </div>
                 ) : invoices.length === 0 ? (
                   <div className="py-16 text-center text-text-muted">
-                    Nenhuma nota com PDF encontrada
+                    Nenhuma nota encontrada
                   </div>
                 ) : (
                   invoices.map((invoice) => {
                     const active = selectedInvoiceId === invoice.id
+                    const recCount = invoice.receivables?.length || 0
+                    const isAvista = recCount <= 1
 
                     return (
                       <button
                         key={invoice.id}
                         type="button"
                         onClick={() => handleSelectInvoice(invoice)}
-                        className={`w-full grid grid-cols-[96px_minmax(0,1fr)_120px_120px] gap-3 px-4 py-3 text-left transition-colors ${
+                        className={`w-full grid grid-cols-[96px_minmax(0,1fr)_80px_100px_100px] gap-3 px-4 py-3 text-left transition-colors ${
                           active ? 'bg-primary/15' : 'hover:bg-dark-border/50'
                         }`}
                       >
@@ -251,6 +254,17 @@ export default function PdfDateEditorPage() {
                         </span>
                         <span className="text-sm text-text-primary truncate">
                           {invoice.customer?.razaoSocial || invoice.chaveAcesso}
+                        </span>
+                        <span>
+                          {isAvista ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-green-500/15 text-green-400">
+                              À vista
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-500/15 text-red-400">
+                              Prazo
+                            </span>
+                          )}
                         </span>
                         <span className="text-sm text-text-muted">
                           {formatDate(invoice.dataEmissao)}
