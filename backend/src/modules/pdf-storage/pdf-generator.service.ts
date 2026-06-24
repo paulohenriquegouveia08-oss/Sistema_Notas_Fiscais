@@ -312,6 +312,9 @@ export class PdfGeneratorService {
     const desconto = Number(invoice.valorDesconto) || 0;
     const effectiveTotal = totalProdutos + frete - desconto;
 
+    const emitTotalProdutos = Number(invoice.valorProdutos) || totalProdutos;
+    const emitValorTotal = effectiveTotal || Number(invoice.valorTotal) || 0;
+
     const natOp = xmlData?.natOp || '';
     const verProc = xmlData?.verProc || '';
     const xmlEmit = xmlData?.emit || {};
@@ -346,10 +349,10 @@ export class PdfGeneratorService {
     const destIE = firstText(xmlDest.ie, customer?.ie, 'ISENTO');
 
     const overrideDateTime = fmtOverrideDateTime(options.overrideDateTime);
-    const emissao = overrideDateTime?.date || fmtXmlDate(xmlData?.dhEmi) || (invoice.dataEmissao ? fmtDate(invoice.dataEmissao) : '');
     const saidaDateTime = xmlData?.dhSaiEnt || xmlData?.dhEmi;
-    const saidaDate = overrideDateTime?.date || fmtXmlDate(saidaDateTime) || (invoice.dataEntrada ? fmtDate(invoice.dataEntrada) : '');
-    const saidaTime = overrideDateTime?.time || fmtXmlTime(saidaDateTime) || (invoice.dataEntrada ? fmtTime(invoice.dataEntrada) : '');
+    const emissao = overrideDateTime?.date || (invoice.dataEmissao ? fmtDate(invoice.dataEmissao) : fmtXmlDate(xmlData?.dhEmi));
+    const saidaDate = overrideDateTime?.date || (invoice.dataEntrada ? fmtDate(invoice.dataEntrada) : fmtXmlDate(saidaDateTime));
+    const saidaTime = overrideDateTime?.time || (invoice.dataEntrada ? fmtTime(invoice.dataEntrada) : fmtXmlTime(saidaDateTime));
 
     const chave = invoice.chaveAcesso || '';
     let chaveXML = firstText(xmlData?.chave, chave);
@@ -512,7 +515,7 @@ export class PdfGeneratorService {
     text(doc, 'FATURA / DUPLICATA', ML + 2, fatY + 1, 6);
     const dupColW = 56;
     let dupX = ML;
-    const isAvista = invoice.tipoPagamento === '1' || invoice.tipoPagamento === 'AVISTA' || (invoice.qtdeParcelas || 0) <= 1 || sortedRec.length <= 1;
+    const isAvista = invoice.tipoPagamento === '1' || invoice.tipoPagamento === 'AVISTA';
     const recsToPrint = isAvista ? [] : sortedRec;
     for (const rec of recsToPrint) {
       const parcelNo = String(rec.parcela).padStart(3, '0');
@@ -538,7 +541,7 @@ export class PdfGeneratorService {
     cell(doc, 'VALOR DO ICMS', fmtBRL(totalICMS || invoice.valorIcms), ML + impW, impR1, impW, impRH, 'bottom');
     cell(doc, 'BASE DE CALCULO DO ICMS SUBST.', fmtBRL(invoice.baseCalculoIcmsSt), ML + impW * 2, impR1, impW, impRH, 'bottom');
     cell(doc, 'VALOR DO ICMS SUBST.', fmtBRL(invoice.valorIcmsSt), ML + impW * 3, impR1, impW, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DOS PRODUTOS', fmtBRL(totalProdutos || invoice.valorProdutos), ML + impW * 4, impR1, impW, impRH, 'bottom');
+    cell(doc, 'VALOR TOTAL DOS PRODUTOS', fmtBRL(emitTotalProdutos), ML + impW * 4, impR1, impW, impRH, 'bottom');
 
     const imp2W = 94;
     cell(doc, 'VALOR DO FRETE', fmtBRL(invoice.valorFrete), ML, impR2, imp2W, impRH, 'bottom');
@@ -546,7 +549,7 @@ export class PdfGeneratorService {
     cell(doc, 'DESCONTO', fmtBRL(invoice.valorDesconto), ML + imp2W * 2, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'OUTRAS DESPESAS ACESSÓRIAS', fmtBRL(0), ML + imp2W * 3, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'VALOR TOTAL DO IPI', fmtBRL(totalIPI), ML + imp2W * 4, impR2, imp2W, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(effectiveTotal || invoice.valorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom'); 
+    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(emitValorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom'); 
 
     // ═══════════════ TRANSPORTADOR ═══════════════
     const trY = 369;

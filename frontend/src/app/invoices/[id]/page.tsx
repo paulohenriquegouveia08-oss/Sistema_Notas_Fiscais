@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   FileText,
@@ -15,12 +15,12 @@ import {
   Barcode,
   CreditCard,
   Package,
-  Scale,
   Truck,
   Percent,
   Receipt,
   Save,
   X,
+  Pencil,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -62,7 +62,6 @@ function parseXmlProducts(xmlStr: string): any[] {
     const xml = parser.parseFromString(xmlStr, 'text/xml')
     const dets = xml.querySelectorAll('det')
     if (!dets.length) return []
-
     return Array.from(dets).map((det) => {
       const prod = det.querySelector('prod')
       if (!prod) return null
@@ -86,21 +85,24 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon?: 
   return (
     <div className="flex items-center gap-2 py-1.5">
       {icon && <span className="text-text-muted w-4 h-4 flex-shrink-0">{icon}</span>}
-      <span className="text-xs text-text-muted min-w-[120px]">{label}</span>
+      <span className="text-xs text-text-muted min-w-[140px]">{label}</span>
       <span className="text-sm text-text-primary font-medium">{value}</span>
     </div>
   )
 }
 
-function EditableRow({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function FieldRow({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 py-1.5">
       {icon && <span className="text-text-muted w-4 h-4 flex-shrink-0">{icon}</span>}
-      <span className="text-xs text-text-muted min-w-[120px]">{label}</span>
+      <span className="text-xs text-text-muted min-w-[140px]">{label}</span>
       <div className="flex-1">{children}</div>
     </div>
   )
 }
+
+const inputCls = 'input-field w-full text-sm py-1.5 px-2'
+const selectCls = 'input-field w-full text-sm py-1.5 px-2'
 
 export default function InvoiceDetailPage() {
   const params = useParams()
@@ -111,26 +113,21 @@ export default function InvoiceDetailPage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<Record<string, any>>({})
 
-  const startEdit = () => {
-    if (!invoice) return
-    setForm({
-      dataEmissao: toInputDate(invoice.dataEmissao),
-      dataEntrada: toInputDate(invoice.dataEntrada || ''),
-      valorTotal: invoice.valorTotal ?? '',
-      valorProdutos: invoice.valorProdutos ?? '',
-      valorFrete: invoice.valorFrete ?? '',
-      valorDesconto: invoice.valorDesconto ?? '',
-      valorTotalTributos: invoice.valorTotalTributos ?? '',
-      tipoPagamento: invoice.tipoPagamento || '',
-      qtdeParcelas: invoice.qtdeParcelas ?? '',
-    })
-    setEditing(true)
-  }
-
-  const cancelEdit = () => {
-    setEditing(false)
-    setForm({})
-  }
+  useEffect(() => {
+    if (invoice && !editing) {
+      setForm({
+        dataEmissao: toInputDate(invoice.dataEmissao),
+        dataEntrada: toInputDate(invoice.dataEntrada || ''),
+        valorTotal: invoice.valorTotal ?? '',
+        valorProdutos: invoice.valorProdutos ?? '',
+        valorFrete: invoice.valorFrete ?? '',
+        valorDesconto: invoice.valorDesconto ?? '',
+        valorTotalTributos: invoice.valorTotalTributos ?? '',
+        tipoPagamento: invoice.tipoPagamento || '',
+        qtdeParcelas: invoice.qtdeParcelas ?? '',
+      })
+    }
+  }, [invoice, editing])
 
   const saveEdit = () => {
     const payload: Record<string, any> = {}
@@ -178,15 +175,9 @@ export default function InvoiceDetailPage() {
     )
   }
 
-  const inputClass = 'input-field w-full text-sm py-1 px-2'
-  const selectClass = 'input-field w-full text-sm py-1 px-2'
-
   return (
-    <PageWrapper
-      title={`NF-e ${invoice.numero}/${invoice.serie}`}
-    >
+    <PageWrapper title={`NF-e ${invoice.numero}/${invoice.serie}`}>
       <div className="space-y-6 max-w-4xl">
-        {/* ── Back button ── */}
         <button
           onClick={() => router.push('/invoices')}
           className="flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
@@ -197,67 +188,36 @@ export default function InvoiceDetailPage() {
 
         {/* ── Header ── */}
         <Card className="p-6">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                <FileText className="h-6 w-6" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10 text-primary">
+              <FileText className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-text-primary">
+                  NF-e {invoice.numero}/{invoice.serie}
+                </h2>
+                <Badge status={invoice.status} />
               </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-text-primary">
-                    NF-e {invoice.numero}/{invoice.serie}
-                  </h2>
-                  <Badge status={invoice.status} />
-                </div>
-                <div className="flex items-center gap-4 mt-2 text-sm text-text-muted flex-wrap">
+              <div className="flex items-center gap-4 mt-2 text-sm text-text-muted flex-wrap">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  Emissão: {formatDate(invoice.dataEmissao as any)}
+                </span>
+                {invoice.dataEntrada && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    Emissão: {formatDate(invoice.dataEmissao as any)}
+                    Entrada: {formatDate(invoice.dataEntrada as any)}
                   </span>
-                  {invoice.dataEntrada && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Entrada: {formatDate(invoice.dataEntrada as any)}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <DollarSign className="h-4 w-4" />
-                    {formatBRL(invoice.valorTotal)}
-                  </span>
-                </div>
+                )}
+                <span className="flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" />
+                  {formatBRL(invoice.valorTotal)}
+                </span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {editing ? (
-                <>
-                  <button
-                    onClick={saveEdit}
-                    disabled={updateMutation.isPending}
-                    className="btn-primary flex items-center gap-2 text-sm"
-                  >
-                    <Save className="h-4 w-4" />
-                    {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="btn-secondary flex items-center gap-2 text-sm"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancelar
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={startEdit}
-                  className="btn-secondary flex items-center gap-2 text-sm"
-                >
-                  Editar dados
-                </button>
-              )}
             </div>
           </div>
 
-          {/* Chave de Acesso */}
           <div className="mt-6 p-4 rounded-lg bg-dark-border/50 border border-dark-border">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -310,120 +270,101 @@ export default function InvoiceDetailPage() {
           </Card>
         )}
 
-        {/* ── Dados Adicionais (editáveis) ── */}
+        {/* ── Dados Adicionais ── */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
-            Dados Adicionais
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" />
+              Dados Adicionais
+            </h3>
+            {!editing ? (
+              <button
+                onClick={() => setEditing(true)}
+                className="btn-secondary flex items-center gap-2 text-sm"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={saveEdit}
+                  disabled={updateMutation.isPending}
+                  className="btn-primary flex items-center gap-2 text-sm"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="btn-secondary flex items-center gap-2 text-sm"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
             {editing ? (
               <>
-                <EditableRow label="Data Emissão" icon={<Calendar className="h-3.5 w-3.5" />}>
-                  <input
-                    type="date"
-                    value={form.dataEmissao || ''}
-                    onChange={(e) => setForm({ ...form, dataEmissao: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Data Entrada" icon={<Calendar className="h-3.5 w-3.5" />}>
-                  <input
-                    type="date"
-                    value={form.dataEntrada || ''}
-                    onChange={(e) => setForm({ ...form, dataEntrada: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Valor Total" icon={<DollarSign className="h-3.5 w-3.5" />}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valorTotal ?? ''}
-                    onChange={(e) => setForm({ ...form, valorTotal: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Valor Produtos" icon={<Package className="h-3.5 w-3.5" />}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valorProdutos ?? ''}
-                    onChange={(e) => setForm({ ...form, valorProdutos: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Frete" icon={<Truck className="h-3.5 w-3.5" />}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valorFrete ?? ''}
-                    onChange={(e) => setForm({ ...form, valorFrete: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Desconto" icon={<Percent className="h-3.5 w-3.5" />}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valorDesconto ?? ''}
-                    onChange={(e) => setForm({ ...form, valorDesconto: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Total Tributos">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valorTotalTributos ?? ''}
-                    onChange={(e) => setForm({ ...form, valorTotalTributos: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
-                <EditableRow label="Tipo Pagamento" icon={<CreditCard className="h-3.5 w-3.5" />}>
-                  <select
-                    value={form.tipoPagamento || ''}
-                    onChange={(e) => setForm({ ...form, tipoPagamento: e.target.value })}
-                    className={selectClass}
-                  >
+                <FieldRow label="Data Emissão" icon={<Calendar className="h-3.5 w-3.5" />}>
+                  <input type="date" value={form.dataEmissao || ''} onChange={(e) => setForm({ ...form, dataEmissao: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Data Entrada" icon={<Calendar className="h-3.5 w-3.5" />}>
+                  <input type="date" value={form.dataEntrada || ''} onChange={(e) => setForm({ ...form, dataEntrada: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Valor Total" icon={<DollarSign className="h-3.5 w-3.5" />}>
+                  <input type="number" step="0.01" value={form.valorTotal ?? ''} onChange={(e) => setForm({ ...form, valorTotal: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Valor Produtos" icon={<Package className="h-3.5 w-3.5" />}>
+                  <input type="number" step="0.01" value={form.valorProdutos ?? ''} onChange={(e) => setForm({ ...form, valorProdutos: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Frete" icon={<Truck className="h-3.5 w-3.5" />}>
+                  <input type="number" step="0.01" value={form.valorFrete ?? ''} onChange={(e) => setForm({ ...form, valorFrete: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Desconto" icon={<Percent className="h-3.5 w-3.5" />}>
+                  <input type="number" step="0.01" value={form.valorDesconto ?? ''} onChange={(e) => setForm({ ...form, valorDesconto: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Total Tributos">
+                  <input type="number" step="0.01" value={form.valorTotalTributos ?? ''} onChange={(e) => setForm({ ...form, valorTotalTributos: e.target.value })} className={inputCls} />
+                </FieldRow>
+                <FieldRow label="Tipo Pagamento" icon={<CreditCard className="h-3.5 w-3.5" />}>
+                  <select value={form.tipoPagamento || ''} onChange={(e) => setForm({ ...form, tipoPagamento: e.target.value })} className={selectCls}>
                     <option value="">-</option>
                     <option value="AVISTA">À Vista</option>
                     <option value="PARCELADO">Parcelado</option>
                   </select>
-                </EditableRow>
-                <EditableRow label="Qtde Parcelas">
-                  <input
-                    type="number"
-                    value={form.qtdeParcelas ?? ''}
-                    onChange={(e) => setForm({ ...form, qtdeParcelas: e.target.value })}
-                    className={inputClass}
-                  />
-                </EditableRow>
+                </FieldRow>
+                <FieldRow label="Qtde Parcelas">
+                  <input type="number" value={form.qtdeParcelas ?? ''} onChange={(e) => setForm({ ...form, qtdeParcelas: e.target.value })} className={inputCls} />
+                </FieldRow>
               </>
             ) : (
               <>
-                <InfoRow label="Data Emissão" value={formatDate(invoice.dataEmissao as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
-                {invoice.dataEntrada && (
-                  <InfoRow label="Data Entrada" value={formatDate(invoice.dataEntrada as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
+                <InfoRow label="Data Emissão" value={formatDate(form.dataEmissao || invoice.dataEmissao as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
+                {form.dataEntrada && (
+                  <InfoRow label="Data Entrada" value={formatDate(form.dataEntrada || invoice.dataEntrada as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
                 )}
-                <InfoRow label="Valor Total" value={formatBRL(invoice.valorTotal)} icon={<DollarSign className="h-3.5 w-3.5" />} />
-                {invoice.valorProdutos != null && (
-                  <InfoRow label="Valor Produtos" value={formatBRL(invoice.valorProdutos)} icon={<Package className="h-3.5 w-3.5" />} />
+                <InfoRow label="Valor Total" value={formatBRL(Number(form.valorTotal) || invoice.valorTotal)} icon={<DollarSign className="h-3.5 w-3.5" />} />
+                {(form.valorProdutos || invoice.valorProdutos != null) && (
+                  <InfoRow label="Valor Produtos" value={formatBRL(Number(form.valorProdutos) || invoice.valorProdutos || 0)} icon={<Package className="h-3.5 w-3.5" />} />
                 )}
-                {invoice.valorFrete != null && Number(invoice.valorFrete) > 0 && (
-                  <InfoRow label="Frete" value={formatBRL(invoice.valorFrete)} icon={<Truck className="h-3.5 w-3.5" />} />
+                {(Number(form.valorFrete) > 0 || (invoice.valorFrete != null && Number(invoice.valorFrete) > 0)) && (
+                  <InfoRow label="Frete" value={formatBRL(Number(form.valorFrete) || invoice.valorFrete || 0)} icon={<Truck className="h-3.5 w-3.5" />} />
                 )}
-                {invoice.valorDesconto != null && Number(invoice.valorDesconto) > 0 && (
-                  <InfoRow label="Desconto" value={formatBRL(invoice.valorDesconto)} icon={<Percent className="h-3.5 w-3.5" />} />
+                {(Number(form.valorDesconto) > 0 || (invoice.valorDesconto != null && Number(invoice.valorDesconto) > 0)) && (
+                  <InfoRow label="Desconto" value={formatBRL(Number(form.valorDesconto) || invoice.valorDesconto || 0)} icon={<Percent className="h-3.5 w-3.5" />} />
                 )}
-                {invoice.valorTotalTributos != null && Number(invoice.valorTotalTributos) > 0 && (
-                  <InfoRow label="Total Tributos" value={formatBRL(invoice.valorTotalTributos)} />
+                {(Number(form.valorTotalTributos) > 0 || (invoice.valorTotalTributos != null && Number(invoice.valorTotalTributos) > 0)) && (
+                  <InfoRow label="Total Tributos" value={formatBRL(Number(form.valorTotalTributos) || invoice.valorTotalTributos || 0)} />
                 )}
-                {invoice.tipoPagamento && (
-                  <InfoRow label="Tipo Pagamento" value={paymentMethodLabel[invoice.tipoPagamento] || invoice.tipoPagamento} icon={<CreditCard className="h-3.5 w-3.5" />} />
+                {(form.tipoPagamento || invoice.tipoPagamento) && (
+                  <InfoRow label="Tipo Pagamento" value={paymentMethodLabel[form.tipoPagamento || invoice.tipoPagamento] || form.tipoPagamento || invoice.tipoPagamento} icon={<CreditCard className="h-3.5 w-3.5" />} />
                 )}
-                {invoice.qtdeParcelas != null && Number(invoice.qtdeParcelas) > 0 && (
-                  <InfoRow label="Parcelas" value={String(invoice.qtdeParcelas)} />
+                {(form.qtdeParcelas || invoice.qtdeParcelas) && Number(form.qtdeParcelas || invoice.qtdeParcelas) > 0 && (
+                  <InfoRow label="Parcelas" value={String(form.qtdeParcelas || invoice.qtdeParcelas)} />
                 )}
               </>
             )}
