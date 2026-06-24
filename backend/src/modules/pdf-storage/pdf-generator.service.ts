@@ -18,6 +18,7 @@ export interface GeneratePdfOptions {
   overrideProductDescription?: string;
   overrideProductCode?: string;
   overrideSerie?: string;
+  overrideNumero?: string;
   overrideUnitValue?: number;
   overrideQuantity?: number;
   outputDir?: string;
@@ -297,6 +298,14 @@ export class PdfGeneratorService {
     }
 
     const effectiveSerie = options.overrideSerie || invoice.serie;
+    const effectiveNumero = options.overrideNumero || invoice.numero;
+
+    // ── Recalculate totals from effective products ──
+    const totalProdutos = effectiveProducts.reduce((sum, p) => sum + (Number(p.vProd) || 0), 0);
+    const totalBC = effectiveProducts.reduce((sum, p) => sum + (p.vBC !== undefined ? Number(p.vBC) : 0), 0);
+    const totalICMS = effectiveProducts.reduce((sum, p) => sum + (p.vICMS !== undefined ? Number(p.vICMS) : 0), 0);
+    const totalIPI = effectiveProducts.reduce((sum, p) => sum + (p.vIPI !== undefined ? Number(p.vIPI) : 0), 0);
+    const effectiveTotal = totalProdutos + (invoice.valorFrete || 0) + (invoice.valorDesconto ? -invoice.valorDesconto : 0);
 
     const natOp = xmlData?.natOp || '';
     const verProc = xmlData?.verProc || '';
@@ -339,9 +348,15 @@ export class PdfGeneratorService {
 
     const chave = invoice.chaveAcesso || '';
     let chaveXML = firstText(xmlData?.chave, chave);
-    if (options.overrideSerie && chaveXML.length === 44) {
-      const serie2 = options.overrideSerie.padStart(2, '0').slice(0, 2);
-      chaveXML = chaveXML.slice(0, 22) + serie2 + chaveXML.slice(24);
+    if (chaveXML.length === 44) {
+      if (options.overrideSerie) {
+        const serie2 = options.overrideSerie.padStart(2, '0').slice(0, 2);
+        chaveXML = chaveXML.slice(0, 22) + serie2 + chaveXML.slice(24);
+      }
+      if (options.overrideNumero) {
+        const nnf9 = options.overrideNumero.padStart(9, '0').slice(0, 9);
+        chaveXML = chaveXML.slice(0, 24) + nnf9 + chaveXML.slice(33);
+      }
     }
     const chaveFmt = formatChave(chaveXML);
     const protocol = protocolo || xmlData?.protocolo || '';
@@ -369,7 +384,7 @@ export class PdfGeneratorService {
     // NF-e box (right) — spans full height y=14..46
     box(doc, ML + 478, 14, 87, 32);
     text(doc, 'NF-e', ML + 478 + 2, 15, 5, { color: LBL });
-    text(doc, `Nº ${invoice.numero}`, ML + 478, 24, 9, { align: 'center', w: 87 });
+    text(doc, `Nº ${effectiveNumero}`, ML + 478, 24, 9, { align: 'center', w: 87 });
     text(doc, `SÉRIE: ${effectiveSerie}`, ML + 478 + 2, 36, 6);
 
     // Separator line
@@ -420,7 +435,7 @@ export class PdfGeneratorService {
     text(doc, tpNF, midX + 55, 96, 7, { align: 'center', w: 12 });
 
     // Nº + SÉRIE + FOLHA
-    text(doc, `Nº ${invoice.numero}`, midX + 2, 120, 7);
+    text(doc, `Nº ${effectiveNumero}`, midX + 2, 120, 7);
     text(doc, `SÉRIE: ${effectiveSerie}`, midX + 2, 128, 6);
     text(doc, 'FOLHA 1 / 1', midX + 2, 136, 6);
 
@@ -512,19 +527,19 @@ export class PdfGeneratorService {
     const impRH = 24;
     const impW = 113;
 
-    cell(doc, 'BASE DE CALCULO DO ICMS', fmtBRL(invoice.baseCalculoIcms), ML, impR1, impW, impRH, 'bottom');
-    cell(doc, 'VALOR DO ICMS', fmtBRL(invoice.valorIcms), ML + impW, impR1, impW, impRH, 'bottom');
+    cell(doc, 'BASE DE CALCULO DO ICMS', fmtBRL(totalBC || invoice.baseCalculoIcms), ML, impR1, impW, impRH, 'bottom');
+    cell(doc, 'VALOR DO ICMS', fmtBRL(totalICMS || invoice.valorIcms), ML + impW, impR1, impW, impRH, 'bottom');
     cell(doc, 'BASE DE CALCULO DO ICMS SUBST.', fmtBRL(invoice.baseCalculoIcmsSt), ML + impW * 2, impR1, impW, impRH, 'bottom');
     cell(doc, 'VALOR DO ICMS SUBST.', fmtBRL(invoice.valorIcmsSt), ML + impW * 3, impR1, impW, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DOS PRODUTOS', fmtBRL(invoice.valorProdutos), ML + impW * 4, impR1, impW, impRH, 'bottom');
+    cell(doc, 'VALOR TOTAL DOS PRODUTOS', fmtBRL(totalProdutos || invoice.valorProdutos), ML + impW * 4, impR1, impW, impRH, 'bottom');
 
     const imp2W = 94;
     cell(doc, 'VALOR DO FRETE', fmtBRL(invoice.valorFrete), ML, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'VALOR DO SEGURO', fmtBRL(0), ML + imp2W, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'DESCONTO', fmtBRL(invoice.valorDesconto), ML + imp2W * 2, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'OUTRAS DESPESAS ACESSÓRIAS', fmtBRL(0), ML + imp2W * 3, impR2, imp2W, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DO IPI', fmtBRL(0), ML + imp2W * 4, impR2, imp2W, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(invoice.valorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom');
+    cell(doc, 'VALOR TOTAL DO IPI', fmtBRL(totalIPI), ML + imp2W * 4, impR2, imp2W, impRH, 'bottom');
+    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(effectiveTotal || invoice.valorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom');
 
     // ═══════════════ TRANSPORTADOR ═══════════════
     const trY = 369;

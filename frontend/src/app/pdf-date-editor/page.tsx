@@ -32,6 +32,21 @@ interface GeneratedPdf {
   }
 }
 
+interface InvoiceDetail {
+  products: any[]
+  serie: string
+  numero: string
+  tipoPagamento: string
+  qtdeParcelas: number
+  valorTotal: number
+  receivables: Array<{
+    parcela: number
+    valorReceber: number
+    dataVencimento: string
+    status: string
+  }>
+}
+
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('pt-BR')
@@ -57,12 +72,14 @@ export default function PdfDateEditorPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('')
   const [date, setDate] = useState(todayInputValue)
   const [time, setTime] = useState('')
+  const [numero, setNumero] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [productCode, setProductCode] = useState('')
   const [serie, setSerie] = useState('')
   const [unitValue, setUnitValue] = useState('')
   const [quantity, setQuantity] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
+  const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
@@ -70,11 +87,16 @@ export default function PdfDateEditorPage() {
   }, [search])
 
   useEffect(() => {
-    if (!selectedInvoiceId) return
+    if (!selectedInvoiceId) {
+      setInvoiceDetail(null)
+      return
+    }
     api
-      .get<{ products: any[]; serie: string }>(`/pdf-storage/date-editor/products/${selectedInvoiceId}`)
+      .get<InvoiceDetail>(`/pdf-storage/date-editor/products/${selectedInvoiceId}`)
       .then((res) => {
-        const first = res.data?.products?.[0]
+        const data = res.data
+        setInvoiceDetail(data)
+        const first = data.products?.[0]
         if (first) {
           setProductDescription(first.descricao || '')
           setProductCode(first.codigo || '')
@@ -86,7 +108,8 @@ export default function PdfDateEditorPage() {
           setUnitValue('')
           setQuantity('')
         }
-        setSerie(res.data?.serie || '')
+        setSerie(data.serie || '')
+        setNumero(data.numero || '')
       })
       .catch(() => {
         setProductDescription('')
@@ -94,6 +117,8 @@ export default function PdfDateEditorPage() {
         setUnitValue('')
         setQuantity('')
         setSerie('')
+        setNumero('')
+        setInvoiceDetail(null)
       })
   }, [selectedInvoiceId])
 
@@ -112,6 +137,8 @@ export default function PdfDateEditorPage() {
 
   const selectedInvoice = invoices.find((invoice) => invoice.id === selectedInvoiceId)
 
+  const calculatedTotal = unitValue && quantity ? Number(unitValue) * Number(quantity) : 0
+
   const generateMutation = useMutation({
     mutationFn: async () => {
       const { data } = await api.post<GeneratedPdf>('/pdf-storage/date-editor', {
@@ -121,6 +148,7 @@ export default function PdfDateEditorPage() {
         productDescription: productDescription || undefined,
         productCode: productCode || undefined,
         serie: serie || undefined,
+        numero: numero || undefined,
         unitValue: unitValue ? Number(unitValue) : undefined,
         quantity: quantity ? Number(quantity) : undefined,
       })
@@ -155,9 +183,12 @@ export default function PdfDateEditorPage() {
     setProductDescription('')
     setProductCode('')
     setSerie('')
+    setNumero('')
     setUnitValue('')
     setQuantity('')
   }
+
+  const tipoPagamentoLabel = invoiceDetail?.tipoPagamento === '1' ? 'À Vista' : invoiceDetail?.tipoPagamento === '2' ? 'A Prazo' : invoiceDetail?.tipoPagamento || '-'
 
   return (
     <PageWrapper title="Editor de Data da DANFE">
@@ -239,7 +270,7 @@ export default function PdfDateEditorPage() {
             <div className="flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold text-text-primary">
-                Nova data
+                Editar DANFE
               </h2>
             </div>
 
@@ -251,6 +282,18 @@ export default function PdfDateEditorPage() {
                 <p className="text-xs text-text-muted truncate">
                   {selectedInvoice.customer?.razaoSocial || selectedInvoice.chaveAcesso}
                 </p>
+                {invoiceDetail && (
+                  <div className="flex gap-3 mt-2 text-xs">
+                    <span className="text-text-muted">
+                      Pagamento: <span className="text-text-primary font-medium">{tipoPagamentoLabel}</span>
+                    </span>
+                    {invoiceDetail.qtdeParcelas > 0 && (
+                      <span className="text-text-muted">
+                        Parcelas: <span className="text-text-primary font-medium">{invoiceDetail.qtdeParcelas}x</span>
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-lg border border-dark-border p-3 text-sm text-text-muted">
@@ -286,6 +329,19 @@ export default function PdfDateEditorPage() {
 
               {selectedInvoiceId && (
                 <>
+                  <label className="block">
+                    <span className="block text-sm text-text-muted mb-1">
+                      Número da nota
+                    </span>
+                    <input
+                      type="text"
+                      value={numero}
+                      onChange={(event) => setNumero(event.target.value)}
+                      placeholder="Ex: 2630"
+                      className="input-field"
+                    />
+                  </label>
+
                   <label className="block">
                     <span className="block text-sm text-text-muted mb-1">
                       Série
@@ -358,11 +414,39 @@ export default function PdfDateEditorPage() {
                   </div>
 
                   {unitValue && quantity && (
-                    <div className="rounded-lg border border-dark-border p-2 text-center">
-                      <span className="text-xs text-text-muted">Valor total: </span>
-                      <span className="text-sm font-semibold text-text-primary">
-                        {formatCurrency(Number(unitValue) * Number(quantity))}
-                      </span>
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                      <div className="flex justify-between text-xs text-text-muted">
+                        <span>Valor unitário × Quantidade</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-lg font-bold text-primary">
+                          {formatCurrency(calculatedTotal)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {invoiceDetail && invoiceDetail.receivables.length > 0 && (
+                    <div className="rounded-lg border border-dark-border p-3 space-y-2">
+                      <p className="text-xs font-medium text-text-muted uppercase">
+                        Duplicatas ({invoiceDetail.receivables.length}x)
+                      </p>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {invoiceDetail.receivables.map((r) => (
+                          <div key={r.parcela} className="flex justify-between text-xs">
+                            <span className="text-text-muted">
+                              {String(r.parcela).padStart(3, '0')} — {formatDate(r.dataVencimento)}
+                            </span>
+                            <span className="text-text-primary font-medium">
+                              {formatCurrency(r.valorReceber)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-xs font-semibold pt-1 border-t border-dark-border">
+                        <span className="text-text-muted">Total nota</span>
+                        <span className="text-text-primary">{formatCurrency(invoiceDetail.valorTotal)}</span>
+                      </div>
                     </div>
                   )}
                 </>

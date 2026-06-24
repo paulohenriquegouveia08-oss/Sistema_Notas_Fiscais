@@ -19,6 +19,7 @@ export interface DateEditRequest {
   productDescription?: string;
   productCode?: string;
   serie?: string;
+  numero?: string;
   unitValue?: number;
   quantity?: number;
 }
@@ -158,6 +159,7 @@ export class PdfStorageService {
         overrideProductDescription: input.productDescription,
         overrideProductCode: input.productCode,
         overrideSerie: input.serie,
+        overrideNumero: input.numero,
         overrideUnitValue: input.unitValue,
         overrideQuantity: input.quantity,
         outputDir: DATE_EDITS_DIR,
@@ -203,7 +205,10 @@ export class PdfStorageService {
   }
 
   async getProductsFromInvoice(invoiceId: string) {
-    const invoice = await this.invoiceRepo.findOne({ where: { id: invoiceId } });
+    const invoice = await this.invoiceRepo.findOne({
+      where: { id: invoiceId },
+      relations: ['receivables'],
+    });
     if (!invoice) throw new NotFoundException('Nota fiscal não encontrada');
     if (!invoice.xmlCompleto) throw new BadRequestException('A nota não possui XML');
 
@@ -211,8 +216,26 @@ export class PdfStorageService {
 
     const xmlData = this.pdfGenerator.parseFullXml(invoice.xmlCompleto);
     const serie = xmlData?.ide?.serie || invoice.serie || '';
+    const numero = xmlData?.ide?.nNF || invoice.numero || '';
 
-    return { products, serie };
+    const receivables = (invoice.receivables || [])
+      .sort((a: any, b: any) => a.parcela - b.parcela)
+      .map((r: any) => ({
+        parcela: r.parcela,
+        valorReceber: r.valorReceber,
+        dataVencimento: r.dataVencimento,
+        status: r.status,
+      }));
+
+    return {
+      products,
+      serie,
+      numero,
+      tipoPagamento: invoice.tipoPagamento || '',
+      qtdeParcelas: invoice.qtdeParcelas || 0,
+      valorTotal: invoice.valorTotal,
+      receivables,
+    };
   }
 
   private normalizeDate(value: string): string {
