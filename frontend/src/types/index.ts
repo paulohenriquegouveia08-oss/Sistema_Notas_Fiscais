@@ -57,6 +57,7 @@ export interface Invoice {
   status: InvoiceStatus
   tipoPagamento?: string
   qtdeParcelas?: number
+  infCpl?: string
   customerId: string
   customer?: Customer
   receivables?: Receivable[]

@@ -79,6 +79,9 @@ export class Invoice {
   @Column({ nullable: true, default: 0 })
   qtdeParcelas?: number;
 
+  @Column({ type: 'text', nullable: true })
+  infCpl?: string;
+
   @Column()
   customerId: string;
 

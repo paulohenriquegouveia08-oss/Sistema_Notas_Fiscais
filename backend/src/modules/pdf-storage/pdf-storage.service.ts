@@ -27,6 +27,7 @@ export interface DateEditRequest {
   valorTotalTributos?: number;
   tipoPagamento?: string;
   qtdeParcelas?: number;
+  infCpl?: string;
 }
 
 export interface DateEditResult {
@@ -159,6 +160,7 @@ export class PdfStorageService {
     if (input.valorTotalTributos != null) updateData.valorTotalTributos = input.valorTotalTributos;
     if (input.tipoPagamento) updateData.tipoPagamento = input.tipoPagamento;
     if (input.qtdeParcelas != null) updateData.qtdeParcelas = input.qtdeParcelas;
+    if (input.infCpl != null) updateData.infCpl = input.infCpl;
     if (Object.keys(updateData).length > 0) {
       await this.invoiceRepo.update(invoice.id, updateData);
       Object.assign(invoice, updateData);
@@ -178,6 +180,7 @@ export class PdfStorageService {
         overrideNumero: input.numero,
         overrideUnitValue: input.unitValue,
         overrideQuantity: input.quantity,
+        overrideInfCpl: input.infCpl,
         outputDir: DATE_EDITS_DIR,
         persistDocument: false,
       },
@@ -250,6 +253,7 @@ export class PdfStorageService {
       tipoPagamento: invoice.tipoPagamento || '',
       qtdeParcelas: invoice.qtdeParcelas || 0,
       valorTotal: invoice.valorTotal,
+      infCpl: invoice.infCpl || xmlData?.infCpl || '',
       receivables,
     };
   }

@@ -21,6 +21,7 @@ export interface GeneratePdfOptions {
   overrideNumero?: string;
   overrideUnitValue?: number;
   overrideQuantity?: number;
+  overrideInfCpl?: string;
   outputDir?: string;
   persistDocument?: boolean;
   originalNameSuffix?: string;
@@ -694,7 +695,7 @@ export class PdfGeneratorService {
     doc.rect(ML, daY + 10, 364, daH - 10).lineWidth(0.25).stroke();
     text(doc, 'INFORMAÇÕES COMPLEMENTARES', ML + 2, daY + 11, 5, { color: LBL });
 
-    const infCpl = xmlData?.infCpl || '';
+    const infCpl = options.overrideInfCpl || invoice.infCpl || xmlData?.infCpl || '';
     let daTextY = daY + 20;
     text(doc, infCpl, ML + 2, daTextY, 5);
     daTextY += 10;

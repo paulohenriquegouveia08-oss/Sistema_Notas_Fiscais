@@ -135,7 +135,7 @@ export class InvoicesService {
     const allowedFields = [
       'dataEmissao', 'dataEntrada', 'valorTotal', 'valorProdutos',
       'valorFrete', 'valorDesconto', 'valorTotalTributos',
-      'tipoPagamento', 'qtdeParcelas', 'status',
+      'tipoPagamento', 'qtdeParcelas', 'status', 'infCpl',
     ];
     const safeUpdate: Record<string, any> = {};
     for (const key of allowedFields) {

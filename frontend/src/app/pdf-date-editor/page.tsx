@@ -39,6 +39,7 @@ interface InvoiceDetail {
   tipoPagamento: string
   qtdeParcelas: number
   valorTotal: number
+  infCpl?: string
   receivables: Array<{
     parcela: number
     valorReceber: number
@@ -83,6 +84,7 @@ export default function PdfDateEditorPage() {
   const [valorTotalTributos, setValorTotalTributos] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
   const [qtdeParcelas, setQtdeParcelas] = useState('')
+  const [infCpl, setInfCpl] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null)
 
@@ -119,6 +121,7 @@ export default function PdfDateEditorPage() {
         setNumero(data.numero || '')
         setTipoPagamento(data.tipoPagamento || '')
         setQtdeParcelas(data.qtdeParcelas != null ? String(data.qtdeParcelas) : '')
+        setInfCpl(data.infCpl || '')
       })
       .catch(() => {
         setProductDescription('')
@@ -171,6 +174,7 @@ export default function PdfDateEditorPage() {
         valorTotalTributos: valorTotalTributos !== '' ? Number(valorTotalTributos) : undefined,
         tipoPagamento: tipoPagamento || undefined,
         qtdeParcelas: qtdeParcelas !== '' ? Number(qtdeParcelas) : undefined,
+        infCpl: infCpl || undefined,
       })
       return data
     },
@@ -211,6 +215,7 @@ export default function PdfDateEditorPage() {
     setValorTotalTributos('')
     setTipoPagamento('')
     setQtdeParcelas('')
+    setInfCpl('')
   }
 
   const tipoPagamentoLabel = invoiceDetail?.tipoPagamento === '1' ? 'À Vista' : invoiceDetail?.tipoPagamento === '2' ? 'A Prazo' : invoiceDetail?.tipoPagamento || '-'
@@ -543,6 +548,19 @@ export default function PdfDateEditorPage() {
                       />
                     </label>
                   )}
+
+                  <label className="block">
+                    <span className="block text-sm text-text-muted mb-1">
+                      Dados Adicionais (infCpl)
+                    </span>
+                    <textarea
+                      value={infCpl}
+                      onChange={(event) => setInfCpl(event.target.value)}
+                      placeholder="Ex: VOLTE SEMPRE MB L1113 AGT-1297"
+                      rows={3}
+                      className="input-field resize-none"
+                    />
+                  </label>
 
                   {unitValue && quantity && (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
