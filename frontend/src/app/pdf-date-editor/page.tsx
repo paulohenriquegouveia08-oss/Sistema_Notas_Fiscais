@@ -60,6 +60,8 @@ export default function PdfDateEditorPage() {
   const [productDescription, setProductDescription] = useState('')
   const [productCode, setProductCode] = useState('')
   const [serie, setSerie] = useState('')
+  const [unitValue, setUnitValue] = useState('')
+  const [quantity, setQuantity] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
 
   useEffect(() => {
@@ -76,15 +78,21 @@ export default function PdfDateEditorPage() {
         if (first) {
           setProductDescription(first.descricao || '')
           setProductCode(first.codigo || '')
+          setUnitValue(String(first.vUnCom ?? ''))
+          setQuantity(String(first.qCom ?? ''))
         } else {
           setProductDescription('')
           setProductCode('')
+          setUnitValue('')
+          setQuantity('')
         }
         setSerie(res.data?.serie || '')
       })
       .catch(() => {
         setProductDescription('')
         setProductCode('')
+        setUnitValue('')
+        setQuantity('')
         setSerie('')
       })
   }, [selectedInvoiceId])
@@ -113,6 +121,8 @@ export default function PdfDateEditorPage() {
         productDescription: productDescription || undefined,
         productCode: productCode || undefined,
         serie: serie || undefined,
+        unitValue: unitValue ? Number(unitValue) : undefined,
+        quantity: quantity ? Number(quantity) : undefined,
       })
       return data
     },
@@ -145,6 +155,8 @@ export default function PdfDateEditorPage() {
     setProductDescription('')
     setProductCode('')
     setSerie('')
+    setUnitValue('')
+    setQuantity('')
   }
 
   return (
@@ -312,6 +324,47 @@ export default function PdfDateEditorPage() {
                       className="input-field"
                     />
                   </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Valor unitário (R$)
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={unitValue}
+                        onChange={(event) => setUnitValue(event.target.value)}
+                        placeholder="0,00"
+                        className="input-field"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Quantidade
+                      </span>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        value={quantity}
+                        onChange={(event) => setQuantity(event.target.value)}
+                        placeholder="1"
+                        className="input-field"
+                      />
+                    </label>
+                  </div>
+
+                  {unitValue && quantity && (
+                    <div className="rounded-lg border border-dark-border p-2 text-center">
+                      <span className="text-xs text-text-muted">Valor total: </span>
+                      <span className="text-sm font-semibold text-text-primary">
+                        {formatCurrency(Number(unitValue) * Number(quantity))}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -19,6 +19,8 @@ export interface DateEditRequest {
   productDescription?: string;
   productCode?: string;
   serie?: string;
+  unitValue?: number;
+  quantity?: number;
 }
 
 export interface DateEditResult {
@@ -156,6 +158,8 @@ export class PdfStorageService {
         overrideProductDescription: input.productDescription,
         overrideProductCode: input.productCode,
         overrideSerie: input.serie,
+        overrideUnitValue: input.unitValue,
+        overrideQuantity: input.quantity,
         outputDir: DATE_EDITS_DIR,
         persistDocument: false,
       },

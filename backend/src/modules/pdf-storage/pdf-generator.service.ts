@@ -18,6 +18,8 @@ export interface GeneratePdfOptions {
   overrideProductDescription?: string;
   overrideProductCode?: string;
   overrideSerie?: string;
+  overrideUnitValue?: number;
+  overrideQuantity?: number;
   outputDir?: string;
   persistDocument?: boolean;
   originalNameSuffix?: string;
@@ -279,6 +281,19 @@ export class PdfGeneratorService {
     }
     if (options.overrideProductCode) {
       effectiveProducts = effectiveProducts.map((p) => ({ ...p, codigo: options.overrideProductCode }));
+    }
+    if (options.overrideUnitValue !== undefined) {
+      effectiveProducts = effectiveProducts.map((p) => {
+        const unitVal = Number(options.overrideUnitValue);
+        const qty = options.overrideQuantity !== undefined ? Number(options.overrideQuantity) : Number(p.qCom);
+        return { ...p, vUnCom: unitVal, vProd: unitVal * qty };
+      });
+    }
+    if (options.overrideQuantity !== undefined && options.overrideUnitValue === undefined) {
+      effectiveProducts = effectiveProducts.map((p) => {
+        const qty = Number(options.overrideQuantity);
+        return { ...p, qCom: qty, vProd: Number(p.vUnCom) * qty };
+      });
     }
 
     const effectiveSerie = options.overrideSerie || invoice.serie;
