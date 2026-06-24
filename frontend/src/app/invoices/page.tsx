@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Search, Upload } from 'lucide-react'
+import { Search, Upload, User } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import InvoiceTable from '@/components/invoices/InvoiceTable'
 import Select from '@/components/ui/Select'
 import { useInvoices, useImportXml } from '@/hooks/useInvoices'
 import { InvoiceStatus } from '@/types'
+import { clsx } from 'clsx'
 
 export default function InvoicesPage() {
   const [search, setSearch] = useState('')
@@ -14,6 +15,7 @@ export default function InvoicesPage() {
   const [status, setStatus] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [pessoaFisica, setPessoaFisica] = useState(false)
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState('dataEmissao')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -45,6 +47,7 @@ export default function InvoicesPage() {
     status: status || undefined,
     dataInicio: startDate || undefined,
     dataFim: endDate || undefined,
+    pessoaFisica: pessoaFisica || undefined,
     sortBy,
     sortOrder,
   })
@@ -98,6 +101,21 @@ export default function InvoicesPage() {
             className="input-field w-40"
             placeholder="Data fim"
           />
+          <button
+            onClick={() => {
+              setPessoaFisica(!pessoaFisica)
+              setPage(1)
+            }}
+            className={clsx(
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              pessoaFisica
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'bg-dark-border/50 text-text-muted hover:text-text-primary hover:bg-dark-border border border-transparent'
+            )}
+          >
+            <User className="h-4 w-4" />
+            Pessoa Física
+          </button>
           <input
             ref={fileInputRef}
             type="file"

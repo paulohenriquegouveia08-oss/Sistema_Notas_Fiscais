@@ -27,6 +27,7 @@ export class InvoicesService {
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    pessoaFisica?: boolean;
   }): Promise<PaginatedResponse<Invoice>> {
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -63,6 +64,8 @@ export class InvoicesService {
         'invoice.status',
         'invoice.customerId',
         'invoice.pdfPath',
+        'invoice.tipoPagamento',
+        'invoice.qtdeParcelas',
         'invoice.createdAt',
         'invoice.updatedAt',
         'customer',
@@ -101,6 +104,10 @@ export class InvoicesService {
       );
     }
 
+    if (query.pessoaFisica) {
+      qb.andWhere('customer.cpf IS NOT NULL AND customer.cnpj IS NULL');
+    }
+
     const [data, total] = await qb.getManyAndCount();
 
     return {
@@ -121,6 +128,26 @@ export class InvoicesService {
       throw new NotFoundException(`Nota fiscal ${id} não encontrada`);
     }
     return invoice;
+  }
+
+  async update(id: string, dto: Record<string, any>): Promise<Invoice> {
+    const invoice = await this.findOne(id);
+    const allowedFields = [
+      'dataEmissao', 'dataEntrada', 'valorTotal', 'valorProdutos',
+      'valorFrete', 'valorDesconto', 'valorTotalTributos',
+      'tipoPagamento', 'qtdeParcelas', 'status',
+    ];
+    const safeUpdate: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (dto[key] !== undefined) {
+        safeUpdate[key] = dto[key];
+      }
+    }
+    if (Object.keys(safeUpdate).length === 0) {
+      return invoice;
+    }
+    await this.invoiceRepo.update(id, safeUpdate);
+    return this.findOne(id);
   }
 
   async getReceivables(id: string) {

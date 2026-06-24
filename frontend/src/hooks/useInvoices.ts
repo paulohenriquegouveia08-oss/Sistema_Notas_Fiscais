@@ -13,6 +13,7 @@ interface InvoiceParams {
   dataFim?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  pessoaFisica?: boolean
 }
 
 export function useInvoices(params: InvoiceParams = {}) {
@@ -33,6 +34,26 @@ export function useInvoice(id: string) {
       return data
     },
     enabled: !!id,
+  })
+}
+
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, ...dto }: { id: string } & Record<string, any>) => {
+      const { data } = await api.patch(`/invoices/${id}`, dto)
+      return data
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.id] })
+      toast.success('Nota fiscal atualizada')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Erro ao atualizar nota fiscal'
+      toast.error(msg)
+    },
   })
 }
 

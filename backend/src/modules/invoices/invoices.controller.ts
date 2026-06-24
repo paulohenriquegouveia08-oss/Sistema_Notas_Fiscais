@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Query,
   Body,
@@ -39,6 +40,7 @@ export class InvoicesController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'sortBy', required: false, type: String })
   @ApiQuery({ name: 'sortOrder', required: false, type: String })
+  @ApiQuery({ name: 'pessoaFisica', required: false, type: String })
   async findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -49,6 +51,7 @@ export class InvoicesController {
     @Query('search') search?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('pessoaFisica') pessoaFisica?: string,
   ) {
     return this.invoicesService.findAll({
       page: +page,
@@ -60,6 +63,7 @@ export class InvoicesController {
       search,
       sortBy,
       sortOrder,
+      pessoaFisica: pessoaFisica === 'true',
     });
   }
 
@@ -67,6 +71,12 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Obter nota fiscal por ID' })
   async findOne(@Param('id') id: string) {
     return this.invoicesService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar dados da nota fiscal' })
+  async update(@Param('id') id: string, @Body() dto: Record<string, any>) {
+    return this.invoicesService.update(id, dto);
   }
 
   @Get(':id/receivables')

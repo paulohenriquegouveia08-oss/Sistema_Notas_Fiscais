@@ -24,6 +24,7 @@ export interface NfeInstallment {
 export interface NfePaymentDetail {
   tPag: string;
   vPag: string;
+  indPag?: string;
   detPag?: NfeInstallment[];
   card?: NfeInstallment[];
   dup?: NfeInstallment[];

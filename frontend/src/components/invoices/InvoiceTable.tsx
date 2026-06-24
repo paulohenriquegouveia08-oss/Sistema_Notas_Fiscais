@@ -143,6 +143,9 @@ export default function InvoiceTable({
                 Emissão
               </SortableHeader>
               <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">
+                Pagamento
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">
                 Parcelas
               </th>
               <SortableHeader field="valorTotal" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} className="text-right">
@@ -190,6 +193,19 @@ export default function InvoiceTable({
                   <td className="px-4 py-3 text-sm text-text-muted">
                     {formatDate(invoice.dataEmissao)}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    {invoice.tipoPagamento === 'AVISTA' ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-green-500/15 text-green-400">
+                        À vista
+                      </span>
+                    ) : invoice.tipoPagamento === 'PARCELADO' ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-500/15 text-red-400">
+                        Prazo
+                      </span>
+                    ) : (
+                      <span className="text-text-muted text-xs">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-center text-text-muted">
                     {invoice.receivables?.length ?? 0}
                   </td>
@@ -215,7 +231,7 @@ export default function InvoiceTable({
                 </tr>
                 {!onViewInvoice && expandedId === invoice.id && (
                   <tr key={`${invoice.id}-details`}>
-                    <td colSpan={7} className="bg-dark-bg/50 px-6 py-4">
+                    <td colSpan={9} className="bg-dark-bg/50 px-6 py-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-text-muted">Chave de Acesso:</span>

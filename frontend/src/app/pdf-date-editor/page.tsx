@@ -81,6 +81,8 @@ export default function PdfDateEditorPage() {
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null)
 
+  const [filterPessoaFisica, setFilterPessoaFisica] = useState(false)
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(timer)
@@ -124,16 +126,22 @@ export default function PdfDateEditorPage() {
 
   const { data: invoicesData, isLoading } = useInvoices({
     page: 1,
-    limit: 30,
+    limit: 500,
     search: debouncedSearch || undefined,
     sortBy: 'numero',
     sortOrder: 'desc',
   })
 
-  const invoices = useMemo(
-    () => invoicesData?.data || [],
-    [invoicesData?.data]
-  )
+  const invoices = useMemo(() => {
+    let list = invoicesData?.data || []
+    if (filterPessoaFisica) {
+      list = list.filter((inv) => {
+        const doc = inv.customer?.cnpj || inv.customer?.cpf || ''
+        return doc.length <= 11 || inv.customer?.cpf
+      })
+    }
+    return list
+  }, [invoicesData?.data, filterPessoaFisica])
 
   const selectedInvoice = invoices.find((invoice) => invoice.id === selectedInvoiceId)
 
@@ -216,12 +224,25 @@ export default function PdfDateEditorPage() {
             </div>
 
             <div className="border border-dark-border rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[96px_minmax(0,1fr)_80px_100px_100px] gap-3 px-4 py-2 bg-dark-bg text-xs font-medium text-text-muted">
-                <span>Nota</span>
-                <span>Cliente</span>
-                <span>Tipo</span>
-                <span>Emissão</span>
-                <span className="text-right">Valor</span>
+              <div className="flex items-center justify-between px-4 py-2 bg-dark-bg">
+                <div className="grid grid-cols-[96px_minmax(0,1fr)_80px_100px_100px] gap-3 text-xs font-medium text-text-muted flex-1">
+                  <span>Nota</span>
+                  <span>Cliente</span>
+                  <span>Tipo</span>
+                  <span>Emissão</span>
+                  <span className="text-right">Valor</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFilterPessoaFisica(!filterPessoaFisica)}
+                  className={`ml-3 px-2 py-1 text-[10px] font-semibold rounded transition-colors ${
+                    filterPessoaFisica
+                      ? 'bg-primary text-white'
+                      : 'bg-dark-border text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  PF
+                </button>
               </div>
 
               <div className="divide-y divide-dark-border max-h-[460px] overflow-y-auto">
@@ -237,8 +258,7 @@ export default function PdfDateEditorPage() {
                 ) : (
                   invoices.map((invoice) => {
                     const active = selectedInvoiceId === invoice.id
-                    const recCount = invoice.receivables?.length || 0
-                    const isAvista = recCount <= 1
+                    const isAvista = invoice.tipoPagamento === 'AVISTA'
 
                     return (
                       <button

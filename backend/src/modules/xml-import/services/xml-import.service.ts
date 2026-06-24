@@ -297,10 +297,15 @@ export class XmlImportService {
     const receivables: Receivable[] = [];
     const today = getTodayStr();
 
-    if (paymentInfo.dup && paymentInfo.dup.length > 0) {
+    const indPag = paymentInfo.detPag?.[0]?.indPag;
+    const hasDup = !!(paymentInfo.dup && paymentInfo.dup.length > 0);
+    const isParcelado = hasDup || indPag === '1';
+
+    if (isParcelado && hasDup) {
       const tPag = paymentInfo.detPag?.[0]?.tPag || '99';
-      for (let i = 0; i < paymentInfo.dup.length; i++) {
-        const inst = paymentInfo.dup[i];
+      const dups = paymentInfo.dup!;
+      for (let i = 0; i < dups.length; i++) {
+        const inst = dups[i];
         const dVenc = normalizeDate(inst.dVenc) || this.getDefaultDueDate();
         const status = dVenc < today
           ? ReceivableStatus.OVERDUE
@@ -319,7 +324,7 @@ export class XmlImportService {
         receivables.push(await this.receivableRepo.save(receivable as any));
       }
       await this.markOverdueForCustomer(customerId);
-      return { receivables, tipoPagamento: 'PARCELADO', qtdeParcelas: paymentInfo.dup.length };
+      return { receivables, tipoPagamento: 'PARCELADO', qtdeParcelas: dups.length };
     }
 
     const pag = paymentInfo.detPag?.[0];
@@ -445,8 +450,10 @@ export class XmlImportService {
     for (const invoice of invoices) {
       try {
         const parsed = this.nfeParser.parse(invoice.xmlCompleto!);
+        const indPag = parsed.paymentInfo.detPag?.[0]?.indPag;
         const hasDup = !!(parsed.paymentInfo.dup && parsed.paymentInfo.dup.length > 0);
-        const tipoPagamento = hasDup ? 'PARCELADO' : 'AVISTA';
+        const isParcelado = hasDup || indPag === '1';
+        const tipoPagamento = isParcelado ? 'PARCELADO' : 'AVISTA';
         const qtdeParcelas = hasDup ? parsed.paymentInfo.dup!.length : 0;
 
         await this.invoiceRepo.update(invoice.id, { tipoPagamento, qtdeParcelas });

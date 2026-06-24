@@ -106,6 +106,7 @@ export class NfeXmlParser {
       detPag: pagArray.map((p: any) => ({
         tPag: p.tPag?.toString() || p?.TPag?.toString() || '99',
         vPag: p.vPag?.toString() || p?.VPag?.toString() || '0',
+        indPag: p.indPag?.toString() || undefined,
         detPag: p.detPag
           ? (Array.isArray(p.detPag) ? p.detPag : [p.detPag]).map((dp: any) => ({
               nParcela: dp.nParcela?.toString() || '1',

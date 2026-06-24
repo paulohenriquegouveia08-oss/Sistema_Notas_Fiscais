@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   FileText,
@@ -18,19 +19,26 @@ import {
   Truck,
   Percent,
   Receipt,
+  Save,
+  X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageWrapper from '@/components/layout/PageWrapper'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
-import { useInvoice } from '@/hooks/useInvoices'
+import { useInvoice, useUpdateInvoice } from '@/hooks/useInvoices'
 import { formatBRL } from '@/utils/format'
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
   const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
   return new Intl.DateTimeFormat('pt-BR').format(new Date(y, m - 1, d))
+}
+
+const toInputDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  return dateStr.split('T')[0]
 }
 
 const paymentMethodLabel: Record<string, string> = {
@@ -84,11 +92,63 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon?: 
   )
 }
 
+function EditableRow({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      {icon && <span className="text-text-muted w-4 h-4 flex-shrink-0">{icon}</span>}
+      <span className="text-xs text-text-muted min-w-[120px]">{label}</span>
+      <div className="flex-1">{children}</div>
+    </div>
+  )
+}
+
 export default function InvoiceDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
   const { data: invoice, isLoading } = useInvoice(id)
+  const updateMutation = useUpdateInvoice()
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState<Record<string, any>>({})
+
+  const startEdit = () => {
+    if (!invoice) return
+    setForm({
+      dataEmissao: toInputDate(invoice.dataEmissao),
+      dataEntrada: toInputDate(invoice.dataEntrada || ''),
+      valorTotal: invoice.valorTotal ?? '',
+      valorProdutos: invoice.valorProdutos ?? '',
+      valorFrete: invoice.valorFrete ?? '',
+      valorDesconto: invoice.valorDesconto ?? '',
+      valorTotalTributos: invoice.valorTotalTributos ?? '',
+      tipoPagamento: invoice.tipoPagamento || '',
+      qtdeParcelas: invoice.qtdeParcelas ?? '',
+    })
+    setEditing(true)
+  }
+
+  const cancelEdit = () => {
+    setEditing(false)
+    setForm({})
+  }
+
+  const saveEdit = () => {
+    const payload: Record<string, any> = {}
+    if (form.dataEmissao) payload.dataEmissao = form.dataEmissao
+    if (form.dataEntrada) payload.dataEntrada = form.dataEntrada
+    if (form.valorTotal !== '' && form.valorTotal != null) payload.valorTotal = Number(form.valorTotal)
+    if (form.valorProdutos !== '' && form.valorProdutos != null) payload.valorProdutos = Number(form.valorProdutos)
+    if (form.valorFrete !== '' && form.valorFrete != null) payload.valorFrete = Number(form.valorFrete)
+    if (form.valorDesconto !== '' && form.valorDesconto != null) payload.valorDesconto = Number(form.valorDesconto)
+    if (form.valorTotalTributos !== '' && form.valorTotalTributos != null) payload.valorTotalTributos = Number(form.valorTotalTributos)
+    if (form.tipoPagamento) payload.tipoPagamento = form.tipoPagamento
+    if (form.qtdeParcelas !== '' && form.qtdeParcelas != null) payload.qtdeParcelas = Number(form.qtdeParcelas)
+
+    updateMutation.mutate(
+      { id, ...payload },
+      { onSuccess: () => setEditing(false) }
+    )
+  }
 
   const copyChave = () => {
     if (!invoice) return
@@ -117,6 +177,9 @@ export default function InvoiceDetailPage() {
       </PageWrapper>
     )
   }
+
+  const inputClass = 'input-field w-full text-sm py-1 px-2'
+  const selectClass = 'input-field w-full text-sm py-1 px-2'
 
   return (
     <PageWrapper
@@ -163,6 +226,34 @@ export default function InvoiceDetailPage() {
                   </span>
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {editing ? (
+                <>
+                  <button
+                    onClick={saveEdit}
+                    disabled={updateMutation.isPending}
+                    className="btn-primary flex items-center gap-2 text-sm"
+                  >
+                    <Save className="h-4 w-4" />
+                    {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="btn-secondary flex items-center gap-2 text-sm"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={startEdit}
+                  className="btn-secondary flex items-center gap-2 text-sm"
+                >
+                  Editar dados
+                </button>
+              )}
             </div>
           </div>
 
@@ -219,6 +310,126 @@ export default function InvoiceDetailPage() {
           </Card>
         )}
 
+        {/* ── Dados Adicionais (editáveis) ── */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-primary" />
+            Dados Adicionais
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+            {editing ? (
+              <>
+                <EditableRow label="Data Emissão" icon={<Calendar className="h-3.5 w-3.5" />}>
+                  <input
+                    type="date"
+                    value={form.dataEmissao || ''}
+                    onChange={(e) => setForm({ ...form, dataEmissao: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Data Entrada" icon={<Calendar className="h-3.5 w-3.5" />}>
+                  <input
+                    type="date"
+                    value={form.dataEntrada || ''}
+                    onChange={(e) => setForm({ ...form, dataEntrada: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Valor Total" icon={<DollarSign className="h-3.5 w-3.5" />}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valorTotal ?? ''}
+                    onChange={(e) => setForm({ ...form, valorTotal: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Valor Produtos" icon={<Package className="h-3.5 w-3.5" />}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valorProdutos ?? ''}
+                    onChange={(e) => setForm({ ...form, valorProdutos: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Frete" icon={<Truck className="h-3.5 w-3.5" />}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valorFrete ?? ''}
+                    onChange={(e) => setForm({ ...form, valorFrete: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Desconto" icon={<Percent className="h-3.5 w-3.5" />}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valorDesconto ?? ''}
+                    onChange={(e) => setForm({ ...form, valorDesconto: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Total Tributos">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valorTotalTributos ?? ''}
+                    onChange={(e) => setForm({ ...form, valorTotalTributos: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+                <EditableRow label="Tipo Pagamento" icon={<CreditCard className="h-3.5 w-3.5" />}>
+                  <select
+                    value={form.tipoPagamento || ''}
+                    onChange={(e) => setForm({ ...form, tipoPagamento: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">-</option>
+                    <option value="AVISTA">À Vista</option>
+                    <option value="PARCELADO">Parcelado</option>
+                  </select>
+                </EditableRow>
+                <EditableRow label="Qtde Parcelas">
+                  <input
+                    type="number"
+                    value={form.qtdeParcelas ?? ''}
+                    onChange={(e) => setForm({ ...form, qtdeParcelas: e.target.value })}
+                    className={inputClass}
+                  />
+                </EditableRow>
+              </>
+            ) : (
+              <>
+                <InfoRow label="Data Emissão" value={formatDate(invoice.dataEmissao as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
+                {invoice.dataEntrada && (
+                  <InfoRow label="Data Entrada" value={formatDate(invoice.dataEntrada as any)} icon={<Calendar className="h-3.5 w-3.5" />} />
+                )}
+                <InfoRow label="Valor Total" value={formatBRL(invoice.valorTotal)} icon={<DollarSign className="h-3.5 w-3.5" />} />
+                {invoice.valorProdutos != null && (
+                  <InfoRow label="Valor Produtos" value={formatBRL(invoice.valorProdutos)} icon={<Package className="h-3.5 w-3.5" />} />
+                )}
+                {invoice.valorFrete != null && Number(invoice.valorFrete) > 0 && (
+                  <InfoRow label="Frete" value={formatBRL(invoice.valorFrete)} icon={<Truck className="h-3.5 w-3.5" />} />
+                )}
+                {invoice.valorDesconto != null && Number(invoice.valorDesconto) > 0 && (
+                  <InfoRow label="Desconto" value={formatBRL(invoice.valorDesconto)} icon={<Percent className="h-3.5 w-3.5" />} />
+                )}
+                {invoice.valorTotalTributos != null && Number(invoice.valorTotalTributos) > 0 && (
+                  <InfoRow label="Total Tributos" value={formatBRL(invoice.valorTotalTributos)} />
+                )}
+                {invoice.tipoPagamento && (
+                  <InfoRow label="Tipo Pagamento" value={paymentMethodLabel[invoice.tipoPagamento] || invoice.tipoPagamento} icon={<CreditCard className="h-3.5 w-3.5" />} />
+                )}
+                {invoice.qtdeParcelas != null && Number(invoice.qtdeParcelas) > 0 && (
+                  <InfoRow label="Parcelas" value={String(invoice.qtdeParcelas)} />
+                )}
+              </>
+            )}
+          </div>
+        </Card>
+
         {/* ── Produtos ── */}
         {hasProducts && (
           <Card className="p-6">
@@ -252,42 +463,6 @@ export default function InvoiceDetailPage() {
             </div>
           </Card>
         )}
-
-        {/* ── Totais ── */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
-            Totais
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-3 rounded-lg bg-dark-border/30">
-              <p className="text-xs text-text-muted">Valor dos Produtos</p>
-              <p className="text-lg font-semibold text-text-primary">{formatBRL(invoice.valorProdutos ?? invoice.valorTotal)}</p>
-            </div>
-            {invoice.valorFrete != null && Number(invoice.valorFrete) > 0 && (
-              <div className="p-3 rounded-lg bg-dark-border/30">
-                <p className="text-xs text-text-muted flex items-center gap-1"><Truck className="h-3 w-3" /> Frete</p>
-                <p className="text-lg font-semibold text-text-primary">{formatBRL(invoice.valorFrete)}</p>
-              </div>
-            )}
-            {invoice.valorDesconto != null && Number(invoice.valorDesconto) > 0 && (
-              <div className="p-3 rounded-lg bg-dark-border/30">
-                <p className="text-xs text-text-muted flex items-center gap-1"><Percent className="h-3 w-3" /> Desconto</p>
-                <p className="text-lg font-semibold text-danger">{formatBRL(invoice.valorDesconto)}</p>
-              </div>
-            )}
-            {invoice.valorTotalTributos != null && Number(invoice.valorTotalTributos) > 0 && (
-              <div className="p-3 rounded-lg bg-dark-border/30">
-                <p className="text-xs text-text-muted">Total Tributos</p>
-                <p className="text-lg font-semibold text-text-primary">{formatBRL(invoice.valorTotalTributos)}</p>
-              </div>
-            )}
-            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <p className="text-xs text-text-muted">Valor Total da NF-e</p>
-              <p className="text-xl font-bold text-primary">{formatBRL(invoice.valorTotal)}</p>
-            </div>
-          </div>
-        </Card>
 
         {/* ── Pagamento ── */}
         <Card className="p-6">
