@@ -308,7 +308,9 @@ export class PdfGeneratorService {
     const totalBC = effectiveProducts.reduce((sum, p) => sum + (p.vBC !== undefined ? Number(p.vBC) : 0), 0);
     const totalICMS = effectiveProducts.reduce((sum, p) => sum + (p.vICMS !== undefined ? Number(p.vICMS) : 0), 0);
     const totalIPI = effectiveProducts.reduce((sum, p) => sum + (p.vIPI !== undefined ? Number(p.vIPI) : 0), 0);
-    const effectiveTotal = totalProdutos + (invoice.valorFrete || 0) + (invoice.valorDesconto ? -invoice.valorDesconto : 0);
+    const frete = Number(invoice.valorFrete) || 0;
+    const desconto = Number(invoice.valorDesconto) || 0;
+    const effectiveTotal = totalProdutos + frete - desconto;
 
     const natOp = xmlData?.natOp || '';
     const verProc = xmlData?.verProc || '';
@@ -544,7 +546,7 @@ export class PdfGeneratorService {
     cell(doc, 'DESCONTO', fmtBRL(invoice.valorDesconto), ML + imp2W * 2, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'OUTRAS DESPESAS ACESSÓRIAS', fmtBRL(0), ML + imp2W * 3, impR2, imp2W, impRH, 'bottom');
     cell(doc, 'VALOR TOTAL DO IPI', fmtBRL(totalIPI), ML + imp2W * 4, impR2, imp2W, impRH, 'bottom');
-    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(effectiveTotal || invoice.valorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom');
+    cell(doc, 'VALOR TOTAL DA NOTA', fmtBRL(effectiveTotal || invoice.valorTotal), ML + imp2W * 5, impR2, 95, impRH, 'bottom'); 
 
     // ═══════════════ TRANSPORTADOR ═══════════════
     const trY = 369;
