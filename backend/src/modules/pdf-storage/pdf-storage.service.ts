@@ -22,6 +22,11 @@ export interface DateEditRequest {
   numero?: string;
   unitValue?: number;
   quantity?: number;
+  valorFrete?: number;
+  valorDesconto?: number;
+  valorTotalTributos?: number;
+  tipoPagamento?: string;
+  qtdeParcelas?: number;
 }
 
 export interface DateEditResult {
@@ -146,6 +151,17 @@ export class PdfStorageService {
 
     if (!invoice.xmlCompleto) {
       throw new BadRequestException('A nota selecionada não possui XML para regenerar a DANFE');
+    }
+
+    const updateData: Record<string, any> = {};
+    if (input.valorFrete != null) updateData.valorFrete = input.valorFrete;
+    if (input.valorDesconto != null) updateData.valorDesconto = input.valorDesconto;
+    if (input.valorTotalTributos != null) updateData.valorTotalTributos = input.valorTotalTributos;
+    if (input.tipoPagamento) updateData.tipoPagamento = input.tipoPagamento;
+    if (input.qtdeParcelas != null) updateData.qtdeParcelas = input.qtdeParcelas;
+    if (Object.keys(updateData).length > 0) {
+      await this.invoiceRepo.update(invoice.id, updateData);
+      Object.assign(invoice, updateData);
     }
 
     const [settings] = await this.settingsRepo.find({ take: 1 });

@@ -78,6 +78,11 @@ export default function PdfDateEditorPage() {
   const [serie, setSerie] = useState('')
   const [unitValue, setUnitValue] = useState('')
   const [quantity, setQuantity] = useState('')
+  const [valorFrete, setValorFrete] = useState('')
+  const [valorDesconto, setValorDesconto] = useState('')
+  const [valorTotalTributos, setValorTotalTributos] = useState('')
+  const [tipoPagamento, setTipoPagamento] = useState('')
+  const [qtdeParcelas, setQtdeParcelas] = useState('')
   const [generatedPdf, setGeneratedPdf] = useState<GeneratedPdf | null>(null)
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null)
 
@@ -112,6 +117,8 @@ export default function PdfDateEditorPage() {
         }
         setSerie(data.serie || '')
         setNumero(data.numero || '')
+        setTipoPagamento(data.tipoPagamento || '')
+        setQtdeParcelas(data.qtdeParcelas != null ? String(data.qtdeParcelas) : '')
       })
       .catch(() => {
         setProductDescription('')
@@ -159,6 +166,11 @@ export default function PdfDateEditorPage() {
         numero: numero || undefined,
         unitValue: unitValue !== '' ? Number(unitValue) : undefined,
         quantity: quantity !== '' ? Number(quantity) : undefined,
+        valorFrete: valorFrete !== '' ? Number(valorFrete) : undefined,
+        valorDesconto: valorDesconto !== '' ? Number(valorDesconto) : undefined,
+        valorTotalTributos: valorTotalTributos !== '' ? Number(valorTotalTributos) : undefined,
+        tipoPagamento: tipoPagamento || undefined,
+        qtdeParcelas: qtdeParcelas !== '' ? Number(qtdeParcelas) : undefined,
       })
       return data
     },
@@ -194,6 +206,11 @@ export default function PdfDateEditorPage() {
     setNumero('')
     setUnitValue('')
     setQuantity('')
+    setValorFrete('')
+    setValorDesconto('')
+    setValorTotalTributos('')
+    setTipoPagamento('')
+    setQtdeParcelas('')
   }
 
   const tipoPagamentoLabel = invoiceDetail?.tipoPagamento === '1' ? 'À Vista' : invoiceDetail?.tipoPagamento === '2' ? 'A Prazo' : invoiceDetail?.tipoPagamento || '-'
@@ -446,6 +463,86 @@ export default function PdfDateEditorPage() {
                       />
                     </label>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Frete (R$)
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorFrete}
+                        onChange={(event) => setValorFrete(event.target.value)}
+                        placeholder="0,00"
+                        className="input-field"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Desconto (R$)
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorDesconto}
+                        onChange={(event) => setValorDesconto(event.target.value)}
+                        placeholder="0,00"
+                        className="input-field"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Total Tributos (R$)
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorTotalTributos}
+                        onChange={(event) => setValorTotalTributos(event.target.value)}
+                        placeholder="0,00"
+                        className="input-field"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Tipo Pagamento
+                      </span>
+                      <select
+                        value={tipoPagamento}
+                        onChange={(event) => setTipoPagamento(event.target.value)}
+                        className="input-field"
+                      >
+                        <option value="">-</option>
+                        <option value="AVISTA">À Vista</option>
+                        <option value="PARCELADO">Parcelado</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {tipoPagamento === 'PARCELADO' && (
+                    <label className="block">
+                      <span className="block text-sm text-text-muted mb-1">
+                        Qtde Parcelas
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={qtdeParcelas}
+                        onChange={(event) => setQtdeParcelas(event.target.value)}
+                        placeholder="Ex: 3"
+                        className="input-field"
+                      />
+                    </label>
+                  )}
 
                   {unitValue && quantity && (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
