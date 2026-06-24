@@ -276,24 +276,27 @@ export class PdfGeneratorService {
 
     const xmlData = this.parseFullXml(invoice.xmlCompleto);
 
-    let effectiveProducts = [...products];
+    let effectiveProducts = products.map((p) => ({ ...p }));
     if (options.overrideProductDescription) {
       effectiveProducts = effectiveProducts.map((p) => ({ ...p, descricao: options.overrideProductDescription }));
     }
     if (options.overrideProductCode) {
       effectiveProducts = effectiveProducts.map((p) => ({ ...p, codigo: options.overrideProductCode }));
     }
-    if (options.overrideUnitValue !== undefined) {
+
+    const hasUnitValue = options.overrideUnitValue !== undefined && options.overrideUnitValue !== null;
+    const hasQuantity = options.overrideQuantity !== undefined && options.overrideQuantity !== null;
+
+    if (hasUnitValue || hasQuantity) {
       effectiveProducts = effectiveProducts.map((p) => {
-        const unitVal = Number(options.overrideUnitValue);
-        const qty = options.overrideQuantity !== undefined ? Number(options.overrideQuantity) : Number(p.qCom);
-        return { ...p, vUnCom: unitVal, vProd: unitVal * qty };
-      });
-    }
-    if (options.overrideQuantity !== undefined && options.overrideUnitValue === undefined) {
-      effectiveProducts = effectiveProducts.map((p) => {
-        const qty = Number(options.overrideQuantity);
-        return { ...p, qCom: qty, vProd: Number(p.vUnCom) * qty };
+        const newUnitVal = hasUnitValue ? Number(options.overrideUnitValue) : Number(p.vUnCom);
+        const newQty = hasQuantity ? Number(options.overrideQuantity) : Number(p.qCom);
+        return {
+          ...p,
+          vUnCom: newUnitVal,
+          qCom: newQty,
+          vProd: newUnitVal * newQty,
+        };
       });
     }
 
@@ -507,7 +510,9 @@ export class PdfGeneratorService {
     text(doc, 'FATURA / DUPLICATA', ML + 2, fatY + 1, 6);
     const dupColW = 56;
     let dupX = ML;
-    for (const rec of sortedRec) {
+    const isAvista = invoice.tipoPagamento === '1';
+    const recsToPrint = isAvista ? [] : sortedRec;
+    for (const rec of recsToPrint) {
       const parcelNo = String(rec.parcela).padStart(3, '0');
       const venc = rec.dataVencimento ? fmtDate(rec.dataVencimento) : '';
       const val = fmtBRL(rec.valorReceber);

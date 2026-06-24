@@ -149,8 +149,8 @@ export default function PdfDateEditorPage() {
         productCode: productCode || undefined,
         serie: serie || undefined,
         numero: numero || undefined,
-        unitValue: unitValue ? Number(unitValue) : undefined,
-        quantity: quantity ? Number(quantity) : undefined,
+        unitValue: unitValue !== '' ? Number(unitValue) : undefined,
+        quantity: quantity !== '' ? Number(quantity) : undefined,
       })
       return data
     },
