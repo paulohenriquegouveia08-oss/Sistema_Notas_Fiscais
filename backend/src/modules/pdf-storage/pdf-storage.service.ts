@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -289,5 +290,31 @@ export class PdfStorageService {
     }
 
     return `${match[1]}:${match[2]}:${match[3] || '00'}`;
+  }
+
+  @Cron('*/10 * * * *')
+  handleDateEditsCleanup() {
+    const maxAgeMs = 30 * 60 * 1000;
+    const now = Date.now();
+
+    if (!fs.existsSync(DATE_EDITS_DIR)) return;
+
+    const files = fs.readdirSync(DATE_EDITS_DIR);
+    let removed = 0;
+
+    for (const file of files) {
+      const filePath = path.join(DATE_EDITS_DIR, file);
+      try {
+        const stat = fs.statSync(filePath);
+        if (now - stat.mtimeMs > maxAgeMs) {
+          fs.unlinkSync(filePath);
+          removed++;
+        }
+      } catch {}
+    }
+
+    if (removed > 0) {
+      this.logger.log(`Limpeza date-edits: ${removed} PDF(s) temporário(s) removido(s)`);
+    }
   }
 }
