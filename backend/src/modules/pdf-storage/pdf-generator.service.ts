@@ -697,8 +697,16 @@ export class PdfGeneratorService {
 
     const infCpl = options.overrideInfCpl || invoice.infCpl || xmlData?.infCpl || '';
     let daTextY = daY + 20;
-    text(doc, infCpl, ML + 2, daTextY, 5);
-    daTextY += 10;
+    if (infCpl) {
+      doc.save();
+      doc.font('Helvetica').fontSize(6).fillColor(TXT);
+      doc.text(infCpl, ML + 2, daTextY, {
+        width: 360,
+        lineBreak: true,
+      });
+      doc.restore();
+      daTextY = Math.min(doc.y, daY + daH - 4);
+    }
     text(doc, 'VOLTE SEMPRE', ML + 2, daTextY, 7);
 
     // Right box: RESERVADO AO FISCO
