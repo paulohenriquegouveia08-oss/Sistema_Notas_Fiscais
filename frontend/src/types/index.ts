@@ -179,8 +179,35 @@ export interface ImportResponse {
   total: number
   imported: number
   duplicated: number
+  xmlsNovos: number
+  xmlsVinculados: number
   errors: number
   details: ImportResult[]
+}
+
+export enum XmlDocumentStatus {
+  VINCULADO = 'vinculado',
+  SEM_NOTA = 'sem_nota',
+}
+
+export interface XmlDocument {
+  id: string
+  chaveAcesso: string
+  invoiceId?: string
+  customerId?: string
+  nomeCliente: string
+  numeroNota: string
+  serie: string
+  dataEmissao: string
+  nomeArquivoOriginal: string
+  nomeArquivoSistema: string
+  caminhoArquivo: string
+  tamanhoArquivo: number
+  status: XmlDocumentStatus
+  invoice?: Invoice
+  customer?: Customer
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PdfDocument {

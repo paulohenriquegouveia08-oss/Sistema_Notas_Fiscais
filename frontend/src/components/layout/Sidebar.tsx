@@ -24,6 +24,7 @@ const navItems = [
   { href: '/reports', label: 'Relatórios', icon: BarChart3 },
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/invoices', label: 'Notas Fiscais', icon: FileText },
+  { href: '/xml', label: 'XML', icon: FileArchive },
   { href: '/pdf-storage', label: 'PDFs', icon: FileArchive },
   { href: '/pdf-date-editor', label: 'Data da DANFE', icon: CalendarClock },
   { href: '/receivables', label: 'Recebíveis', icon: DollarSign },

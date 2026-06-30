@@ -16,6 +16,7 @@ import { InvoiceStatus } from '../../../shared/enums/invoice-status.enum';
 import { ReceivableStatus } from '../../../shared/enums/receivable-status.enum';
 import { ImportResult } from '../interfaces/import-result.interface';
 import { PdfGeneratorService } from '../../pdf-storage/pdf-generator.service';
+import { XmlDocumentsService } from '../../xml-documents/xml-documents.service';
 
 function normalizeDate(dateStr: string | undefined | null): string | undefined {
   if (!dateStr) return undefined;
@@ -53,9 +54,10 @@ export class XmlImportService {
     private readonly pdfGenerator: PdfGeneratorService,
     @InjectRepository(CompanySettings)
     private readonly settingsRepo: Repository<CompanySettings>,
+    private readonly xmlDocService: XmlDocumentsService,
   ) {}
 
-  async importXml(xmlContent: string): Promise<ImportResult> {
+  async importXml(xmlContent: string, originalFileName?: string): Promise<ImportResult> {
     const validation = this.xmlValidator.validate(xmlContent);
     if (!validation.valid) {
       return {
@@ -65,6 +67,8 @@ export class XmlImportService {
         customer: { id: '', razaoSocial: '', isNew: false },
         invoice: { id: '', isNew: false },
         receivables: [],
+        acao: 'erro',
+        mensagem: validation.message || 'XML inválido',
         errors: [validation.message || 'XML inválido'],
       };
     }
@@ -82,6 +86,8 @@ export class XmlImportService {
         customer: { id: '', razaoSocial: '', isNew: false },
         invoice: { id: '', isNew: false },
         receivables: [],
+        acao: 'erro',
+        mensagem: `Erro ao parsear XML: ${err.message}`,
         errors: [`Erro ao parsear XML: ${err.message}`],
       };
     }
@@ -89,7 +95,10 @@ export class XmlImportService {
     const existingInvoice = await this.invoiceRepo.findOne({
       where: { chaveAcesso: parsed.chaveAcesso },
     });
-    if (existingInvoice) {
+
+    const existingXmlDoc = await this.xmlDocService.findByChaveAcesso(parsed.chaveAcesso);
+
+    if (existingInvoice && existingXmlDoc) {
       return {
         chaveAcesso: parsed.chaveAcesso,
         numero: parsed.numero,
@@ -101,8 +110,56 @@ export class XmlImportService {
         },
         invoice: { id: existingInvoice.id, isNew: false },
         receivables: [],
+        xmlDocument: { id: existingXmlDoc.id, isNew: false },
+        acao: 'nota_existente_xml_existente',
+        mensagem: 'Nota e XML já existiam. Nenhuma ação necessária.',
         errors: [],
       };
+    }
+
+    if (existingInvoice && !existingXmlDoc) {
+      try {
+        const { xmlDocument } = await this.xmlDocService.saveFromImport(
+          xmlContent,
+          parsed,
+          existingInvoice.id,
+          existingInvoice.customerId,
+          originalFileName || `nota_${parsed.numero}.xml`,
+        );
+        return {
+          chaveAcesso: parsed.chaveAcesso,
+          numero: parsed.numero,
+          serie: parsed.serie,
+          customer: {
+            id: existingInvoice.customerId,
+            razaoSocial: existingInvoice.customer?.razaoSocial || '',
+            isNew: false,
+          },
+          invoice: { id: existingInvoice.id, isNew: false },
+          receivables: [],
+          xmlDocument: { id: xmlDocument.id, isNew: true },
+          acao: 'nota_existente_xml_salvo',
+          mensagem: 'Nota já existia. XML arquivado e vinculado à nota fiscal existente.',
+          errors: [],
+        };
+      } catch (err: any) {
+        errors.push(`Erro ao salvar XML: ${err.message}`);
+        return {
+          chaveAcesso: parsed.chaveAcesso,
+          numero: parsed.numero,
+          serie: parsed.serie,
+          customer: {
+            id: existingInvoice.customerId,
+            razaoSocial: existingInvoice.customer?.razaoSocial || '',
+            isNew: false,
+          },
+          invoice: { id: existingInvoice.id, isNew: false },
+          receivables: [],
+          acao: 'erro',
+          mensagem: `Nota já existia mas houve erro ao salvar XML: ${err.message}`,
+          errors,
+        };
+      }
     }
 
     let customer: Customer & { isNew?: boolean };
@@ -185,6 +242,21 @@ export class XmlImportService {
       errors.push(`Erro ao gerar DANFE: ${err.message}`);
     }
 
+    let xmlDocumentResult: { id: string; isNew: boolean } | undefined;
+    try {
+      const { xmlDocument, acao } = await this.xmlDocService.saveFromImport(
+        xmlContent,
+        parsed,
+        savedInvoice.id,
+        customer.id,
+        originalFileName || `nota_${parsed.numero}.xml`,
+      );
+      xmlDocumentResult = { id: xmlDocument.id, isNew: acao !== 'existente' };
+    } catch (err: any) {
+      this.logger.warn(`Erro ao salvar XML document para NF-e ${parsed.chaveAcesso}: ${err.message}`);
+      errors.push(`Erro ao salvar XML: ${err.message}`);
+    }
+
     this.logger.log(
       `NF-e ${parsed.chaveAcesso} importada: ${customer.razaoSocial}, ${receivables.length} recebíveis`,
     );
@@ -209,6 +281,9 @@ export class XmlImportService {
         dataVencimento: r.dataVencimento,
         formaPagamento: r.formaPagamento || '',
       })),
+      xmlDocument: xmlDocumentResult,
+      acao: 'nota_criada_e_xml_salvo',
+      mensagem: 'Nota fiscal e XML criados com sucesso.',
       errors,
     };
   }

@@ -21,5 +21,11 @@ export interface ImportResult {
     dataVencimento: string;
     formaPagamento: string;
   }>;
+  xmlDocument?: {
+    id: string;
+    isNew: boolean;
+  };
+  acao?: string;
+  mensagem?: string;
   errors: string[];
 }

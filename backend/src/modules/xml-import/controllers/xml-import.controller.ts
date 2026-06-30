@@ -54,7 +54,7 @@ export class XmlImportController {
 
       if (name.endsWith('.xml')) {
         const xmlContent = file.buffer.toString('utf-8');
-        const result = await this.xmlImportService.importXml(xmlContent);
+        const result = await this.xmlImportService.importXml(xmlContent, file.originalname);
         results.push(result);
       } else if (name.endsWith('.pdf')) {
         const result = await this.xmlImportService.importPdf(file.buffer, file.originalname);
@@ -67,6 +67,8 @@ export class XmlImportController {
           customer: { id: '', razaoSocial: '', isNew: false },
           invoice: { id: '', isNew: false },
           receivables: [],
+          acao: 'erro',
+          mensagem: `Formato não suportado: ${file.originalname}. Use .xml ou .pdf`,
           errors: [`Formato não suportado: ${file.originalname}. Use .xml ou .pdf`],
         });
       }
@@ -74,18 +76,22 @@ export class XmlImportController {
 
     const total = results.length;
     const imported = results.filter((r: any) => r.invoice?.isNew).length;
-    const duplicated = results.filter((r: any) => !r.invoice?.isNew && !r.errors?.length).length;
-    const errors = results.filter((r: any) => r.errors?.length > 0);
+    const duplicated = results.filter((r: any) => !r.invoice?.isNew && r.acao !== 'nota_existente_xml_salvo' && !r.errors?.length).length;
+    const xmlsNovos = results.filter((r: any) => r.xmlDocument?.isNew).length;
+    const xmlsVinculados = results.filter((r: any) => r.acao === 'nota_existente_xml_salvo').length;
+    const erros = results.filter((r: any) => r.errors?.length > 0);
 
     this.logger.log(
-      `Importação concluída: ${imported} importadas, ${duplicated} já existentes, ${errors.length} com erros`,
+      `Importação concluída: ${imported} importadas, ${duplicated} já existentes, ${xmlsNovos} XMLs novos, ${xmlsVinculados} XMLs vinculados, ${erros.length} com erros`,
     );
 
     return {
       total,
       imported,
       duplicated,
-      errors: errors.length,
+      xmlsNovos,
+      xmlsVinculados,
+      errors: erros.length,
       details: results,
     };
   }
