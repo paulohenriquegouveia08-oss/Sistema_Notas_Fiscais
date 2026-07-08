@@ -160,11 +160,11 @@ export default function SettingsPage() {
           <div className="p-3 rounded-lg bg-dark-border/50 border border-dark-border mb-4">
             <p className="text-xs text-text-muted mb-2">Como usar:</p>
             <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside">
-              <li>Baixe o <strong>Instalador</strong> (.bat) abaixo</li>
-              <li>Abra a pasta onde baixou e clique duplo no <code className="bg-dark-border px-1 rounded">DevokMonitor.bat</code></li>
-              <li>O instalador baixa e instala Python automaticamente (1-2 minutos)</li>
+              <li>Clique em <strong>"Baixar App"</strong></li>
+              <li>Abra o arquivo baixado (<code className="bg-dark-border px-1 rounded">DevokMonitor.bat</code>)</li>
+              <li>Aguarde — instala tudo automaticamente (1-2 minutos)</li>
               <li>O app abre sozinho — selecione a pasta do Devok</li>
-              <li>Clique em "Iniciar Monitoramento" ou defina um horário</li>
+              <li>Clique em "Iniciar Monitoramento"</li>
             </ol>
           </div>
 
@@ -175,15 +175,7 @@ export default function SettingsPage() {
               className="btn-primary flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Baixar Instalador (.bat)
-            </a>
-            <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/devok_monitor.py`}
-              download
-              className="btn-secondary flex items-center gap-2 text-sm"
-            >
-              <Download className="h-4 w-4" />
-              App Python
+              Baixar App
             </a>
             <a
               href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/README.md`}
