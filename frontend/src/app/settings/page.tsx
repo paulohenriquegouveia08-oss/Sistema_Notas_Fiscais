@@ -8,6 +8,7 @@ import { useClearData } from '@/hooks/useAdmin'
 import { useState, useRef } from 'react'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
+import { Download, Monitor, FolderOpen, Clock, CheckCircle2 } from 'lucide-react'
 
 export default function SettingsPage() {
   const [confirm, setConfirm] = useState(false)
@@ -125,6 +126,65 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-2 flex items-center gap-2">
+            <Monitor className="h-5 w-5 text-primary" />
+            Devok Monitor — Importador Automático
+          </h3>
+          <p className="text-sm text-text-muted mb-4">
+            App desktop que monitora a pasta do Devok e envia XMLs automaticamente para o SisFin.
+          </p>
+
+          <div className="space-y-3 mb-4">
+            <div className="flex items-start gap-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+              <span className="text-text-muted">Monitoramento automático a cada 30 segundos</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+              <span className="text-text-muted">Agendamento diário em horário definido</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+              <span className="text-text-muted">Verificação automática ao acordar o PC</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+              <span className="text-text-muted">Log completo de todas as importações</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-lg bg-dark-border/50 border border-dark-border mb-4">
+            <p className="text-xs text-text-muted mb-2">Como usar:</p>
+            <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside">
+              <li>Baixe o app abaixo</li>
+              <li>Extraia e rode <code className="bg-dark-border px-1 rounded">main.py</code> ou o <code className="bg-dark-border px-1 rounded">DevokMonitor.exe</code></li>
+              <li>Clique em "Procurar" e selecione a pasta do Devok</li>
+              <li>Clique em "Monitorar" ou defina um horário</li>
+              <li>Pronto! XMLs são enviados automaticamente</li>
+            </ol>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/main.py`}
+              download
+              className="btn-primary flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Baixar App (Python)
+            </a>
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/requirements.txt`}
+              download
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
+              <Download className="h-4 w-4" />
+              requirements.txt
+            </a>
           </div>
         </Card>
 

@@ -22,6 +22,7 @@ import { ServerMonitorModule } from './integrations/server-monitor/server-monito
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { XmlDocumentsModule } from './modules/xml-documents/xml-documents.module';
+import { DevokMonitorModule } from './modules/devok-monitor/devok-monitor.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { XmlDocumentsModule } from './modules/xml-documents/xml-documents.module
     TelegramBotModule,
     ReportsModule,
     XmlDocumentsModule,
+    DevokMonitorModule,
   ],
   providers: [
     {
