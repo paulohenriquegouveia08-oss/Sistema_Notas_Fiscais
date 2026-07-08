@@ -160,30 +160,38 @@ export default function SettingsPage() {
           <div className="p-3 rounded-lg bg-dark-border/50 border border-dark-border mb-4">
             <p className="text-xs text-text-muted mb-2">Como usar:</p>
             <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside">
-              <li>Baixe o app abaixo</li>
-              <li>Extraia e rode <code className="bg-dark-border px-1 rounded">main.py</code> ou o <code className="bg-dark-border px-1 rounded">DevokMonitor.exe</code></li>
-              <li>Clique em "Procurar" e selecione a pasta do Devok</li>
-              <li>Clique em "Monitorar" ou defina um horário</li>
-              <li>Pronto! XMLs são enviados automaticamente</li>
+              <li>Baixe o <strong>Instalador</strong> (.bat) abaixo</li>
+              <li>Abra a pasta onde baixou e clique duplo no <code className="bg-dark-border px-1 rounded">DevokMonitor.bat</code></li>
+              <li>O instalador baixa e instala Python automaticamente (1-2 minutos)</li>
+              <li>O app abre sozinho — selecione a pasta do Devok</li>
+              <li>Clique em "Iniciar Monitoramento" ou defina um horário</li>
             </ol>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/main.py`}
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/DevokMonitor.bat`}
               download
               className="btn-primary flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Baixar App (Python)
+              Baixar Instalador (.bat)
             </a>
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/requirements.txt`}
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/devok_monitor.py`}
               download
               className="btn-secondary flex items-center gap-2 text-sm"
             >
               <Download className="h-4 w-4" />
-              requirements.txt
+              App Python
+            </a>
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/README.md`}
+              download
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
+              <Download className="h-4 w-4" />
+              Manual
             </a>
           </div>
         </Card>
