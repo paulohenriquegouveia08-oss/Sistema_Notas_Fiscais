@@ -7,6 +7,18 @@ const MONITOR_DIR = path.join(process.cwd(), 'uploads', 'devok-monitor');
 
 @Controller('devok-monitor')
 export class DevokMonitorController {
+  @Get('version')
+  async getVersion(@Res() res: Response) {
+    const versionPath = path.join(MONITOR_DIR, 'version.json');
+    if (fs.existsSync(versionPath)) {
+      const content = fs.readFileSync(versionPath, 'utf-8');
+      res.setHeader('Content-Type', 'application/json');
+      res.send(content);
+    } else {
+      res.json({ version: '1.0.0', downloadUrl: '', changelog: '' });
+    }
+  }
+
   @Get('download/:filename')
   async download(@Param('filename') filename: string, @Res() res: Response) {
     if (!filename || filename.includes('..') || filename.includes('/')) {

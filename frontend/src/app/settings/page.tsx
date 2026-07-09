@@ -136,6 +136,7 @@ export default function SettingsPage() {
           </h3>
           <p className="text-sm text-text-muted mb-4">
             App desktop que monitora a pasta do Devok e envia XMLs automaticamente para o SisFin.
+            <span className="text-xs text-text-muted ml-2">(v1.1.0)</span>
           </p>
 
           <div className="space-y-3 mb-4">

@@ -1,8 +1,11 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+
+const APP_VERSION = '1.0.0';
+const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
 let monitorInterval = null;
@@ -231,7 +234,46 @@ app.whenReady().then(() => {
   if (mainWindow) {
     mainWindow.webContents.send('config', config);
   }
+
+  checkForUpdate();
 });
+
+async function checkForUpdate() {
+  try {
+    const url = new URL(VERSION_URL);
+    const client = url.protocol === 'https:' ? https : http;
+
+    const data = await new Promise((resolve, reject) => {
+      client.get(url.href, { timeout: 5000 }, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try { resolve(JSON.parse(body)); }
+          catch { reject(new Error('Resposta inválida')); }
+        });
+      }).on('error', reject);
+    });
+
+    if (data.version && data.version !== APP_VERSION) {
+      if (mainWindow) {
+        const response = await dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: 'Atualização disponível',
+          message: `Nova versão disponível: ${data.version}`,
+          detail: data.changelog || 'Atualize para obter as últimas correções.',
+          buttons: ['Baixar Atualização', 'Agora não'],
+          defaultId: 0,
+        });
+
+        if (response.response === 0 && data.downloadUrl) {
+          shell.openExternal(data.downloadUrl);
+        }
+      }
+    }
+  } catch {
+    // Silently ignore update check errors
+  }
+}
 
 app.on('window-all-closed', () => {
   stopMonitoring();
