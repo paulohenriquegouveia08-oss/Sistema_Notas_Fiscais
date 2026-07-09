@@ -247,6 +247,11 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
   mainWindow.setMenuBarVisibility(false);
+
+  mainWindow.on('close', () => {
+    stopMonitoring();
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -306,6 +311,10 @@ async function checkForUpdate() {
 app.on('window-all-closed', () => {
   stopMonitoring();
   app.quit();
+});
+
+app.on('before-quit', () => {
+  stopMonitoring();
 });
 
 // IPC handlers
