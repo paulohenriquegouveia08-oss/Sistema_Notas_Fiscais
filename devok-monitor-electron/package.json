@@ -12,11 +12,7 @@
     "appId": "com.pkdigital.devokmonitor",
     "productName": "Devok Monitor",
     "win": {
-      "target": "nsis"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "target": "portable"
     },
     "files": [
       "main.js",

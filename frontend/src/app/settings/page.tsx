@@ -161,21 +161,20 @@ export default function SettingsPage() {
             <p className="text-xs text-text-muted mb-2">Como usar:</p>
             <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside">
               <li>Clique em <strong>"Baixar App"</strong></li>
-              <li>Execute o arquivo baixado</li>
-              <li>O app abre — selecione a pasta do Devok</li>
-              <li>Clique em "Iniciar Monitoramento"</li>
-              <li>Pronto! XMLs são enviados automaticamente</li>
+              <li>Execute o <code className="bg-dark-border px-1 rounded">DevokMonitor.exe</code> baixado</li>
+              <li>O app abre direto — sem instalar nada</li>
+              <li>Selecione a pasta do Devok e clique "Iniciar"</li>
             </ol>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/main.js`}
-              download="DevokMonitor-main.js"
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/DevokMonitor.exe`}
+              download
               className="btn-primary flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Baixar App (Electron)
+              Baixar App (.exe)
             </a>
             <a
               href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/README.md`}
