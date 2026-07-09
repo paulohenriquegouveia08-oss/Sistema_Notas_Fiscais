@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Devok Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Devok Monitor — SisFin Importer</h1>
+
+    <div class="field">
+      <label>Pasta Devok:</label>
+      <div class="row">
+        <input type="text" id="folderPath" readonly placeholder="Selecione a pasta...">
+        <button id="btnBrowse">Procurar</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>API SisFin:</label>
+      <input type="text" id="apiUrl" value="http://137.131.233.254:3002/api/v1">
+    </div>
+
+    <div class="field">
+      <label>Horário (agendamento diário):</label>
+      <input type="time" id="scheduleTime" value="18:00">
+    </div>
+
+    <div class="buttons">
+      <button id="btnStart" class="btn green">▶ Iniciar</button>
+      <button id="btnStop" class="btn red" disabled>⏸ Parar</button>
+      <button id="btnCheck" class="btn blue">Verificar Agora</button>
+    </div>
+
+    <div class="status">
+      <span id="statusText" class="status-off">● Parado</span>
+      <span id="lastCheckText">Última verificação: —</span>
+    </div>
+
+    <label>Log:</label>
+    <div id="logBox"></div>
+
+    <div class="stats" id="statsText">Importados: 0 | Duplicados: 0 | Erros: 0</div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  height: 100vh;
+}
+
+.container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00d4ff;
+  margin-bottom: 12px;
+}
+
+.field {
+  margin-bottom: 10px;
+}
+
+.field label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.field input, .field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.row input { flex: 1; }
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.green { background: #00c853; color: #fff; }
+.btn.red { background: #ff1744; color: #fff; }
+.btn.blue { background: #2979ff; color: #fff; }
+.btn:hover:not(:disabled) { opacity: 0.85; }
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.status-on { color: #00c853; font-weight: 600; }
+.status-off { color: #ff1744; font-weight: 600; }
+
+#lastCheckText { color: #888; }
+
+label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+#logBox {
+  background: #0f0f23;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px;
+  height: 200px;
+  overflow-y: auto;
+  font-family: 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.stats {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #888;
+}
+
+.log-line { margin-bottom: 2px; }
+.log-ok { color: #00c853; }
+.log-skip { color: #ffc107; }
+.log-err { color: #ff1744; }
+.log-info { color: #2979ff; }
