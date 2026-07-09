@@ -4,18 +4,16 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.6.0';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
 let monitorInterval = null;
 let scheduleTimeout = null;
 let lastCheckTime = null;
-let sentFiles = new Set();
 let isChecking = false;
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
-const SENT_PATH = path.join(app.getPath('userData'), 'sent.json');
 
 function loadConfig() {
   try {
@@ -28,19 +26,6 @@ function loadConfig() {
 
 function saveConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-}
-
-function loadSent() {
-  try {
-    if (fs.existsSync(SENT_PATH)) {
-      return new Set(JSON.parse(fs.readFileSync(SENT_PATH, 'utf-8')));
-    }
-  } catch {}
-  return new Set();
-}
-
-function saveSent(sent) {
-  fs.writeFileSync(SENT_PATH, JSON.stringify([...sent]));
 }
 
 function log(message) {
@@ -95,7 +80,7 @@ function sendXml(filePath) {
   });
 }
 
-function moveFile(src, destFolder) {
+function copyFile(src, destFolder) {
   if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, { recursive: true });
   let dest = path.join(destFolder, path.basename(src));
   if (fs.existsSync(dest)) {
@@ -103,7 +88,7 @@ function moveFile(src, destFolder) {
     const name = path.basename(src, ext);
     dest = path.join(destFolder, `${name}_${Date.now()}${ext}`);
   }
-  fs.renameSync(src, dest);
+  fs.copyFileSync(src, dest);
   return dest;
 }
 
@@ -125,6 +110,29 @@ function validateXml(filePath) {
   }
 }
 
+function extractChaveAcesso(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const match = content.match(/chaveNFe[^>]*>(\d{44})/);
+    if (match) return match[1];
+    const match2 = content.match(/Id="NFe(\d{44})"/);
+    if (match2) return match2[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractNumero(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const match = content.match(/<nNF>(\d+)<\/nNF>/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 async function checkFolder() {
   if (isChecking) {
     log('Verificação já em andamento...');
@@ -136,6 +144,7 @@ async function checkFolder() {
   const folder = config.watchFolder;
   if (!folder || !fs.existsSync(folder)) {
     log('Pasta não configurada ou não encontrada');
+    isChecking = false;
     return { imported: 0, duplicated: 0, errors: 0 };
   }
 
@@ -143,56 +152,63 @@ async function checkFolder() {
     .filter(f => f.toLowerCase().endsWith('.xml') && fs.statSync(path.join(folder, f)).isFile());
 
   if (files.length === 0) {
-    log('Nenhum XML novo encontrado');
+    log('Nenhum XML na pasta');
+    isChecking = false;
     return { imported: 0, duplicated: 0, errors: 0 };
   }
 
-  log(`${files.length} XML(s) encontrado(s)`);
+  log(`${files.length} XML(s) na pasta`);
   const stats = { imported: 0, duplicated: 0, errors: 0 };
 
   for (const file of files) {
-    if (sentFiles.has(file)) continue;
     const filePath = path.join(folder, file);
 
     try {
       const validation = validateXml(filePath);
       if (!validation.valid) {
         log(`❌ ${file} → ${validation.error}`);
-        moveFile(filePath, path.join(folder, 'erros'));
+        copyFile(filePath, path.join(folder, 'erros'));
         stats.errors++;
-        sentFiles.add(file);
-        saveSent(sentFiles);
+        if (mainWindow) mainWindow.webContents.send('stats', stats);
         continue;
       }
 
-      log(`Enviando: ${file}`);
+      const chave = extractChaveAcesso(filePath);
+      const numero = extractNumero(filePath);
+      if (!chave) {
+        log(`❌ ${file} → Sem chave de acesso`);
+        copyFile(filePath, path.join(folder, 'erros'));
+        stats.errors++;
+        if (mainWindow) mainWindow.webContents.send('stats', stats);
+        continue;
+      }
+
+      log(`Enviando: ${file} (NF ${numero || '?'})`);
       const result = await sendXml(filePath);
 
       if (result.imported > 0) {
         const acao = result.details?.[0]?.acao || 'nota_criada';
         log(`✅ ${file} → ${acao}`);
-        moveFile(filePath, path.join(folder, 'processados'));
+        copyFile(filePath, path.join(folder, 'processados'));
         stats.imported++;
       } else if (result.duplicated > 0) {
         const acao = result.details?.[0]?.acao || 'duplicado';
         log(`⏭️ ${file} → ${acao}`);
-        moveFile(filePath, path.join(folder, 'duplicados'));
+        copyFile(filePath, path.join(folder, 'duplicados'));
         stats.duplicated++;
       } else if (result.errors > 0) {
         const err = result.details?.[0]?.errors?.[0] || 'Erro';
         log(`❌ ${file} → ${err}`);
-        moveFile(filePath, path.join(folder, 'erros'));
+        copyFile(filePath, path.join(folder, 'erros'));
         stats.errors++;
       } else {
         log(`⚠️ ${file} → Resposta vazia da API`);
-        moveFile(filePath, path.join(folder, 'erros'));
+        copyFile(filePath, path.join(folder, 'erros'));
         stats.errors++;
       }
 
-      sentFiles.add(file);
-      saveSent(sentFiles);
       if (mainWindow) mainWindow.webContents.send('stats', stats);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 500));
     } catch (e) {
       log(`❌ ${file} → ${e.message}`);
       stats.errors++;
@@ -208,7 +224,6 @@ async function checkFolder() {
 
 function startMonitoring() {
   if (monitorInterval) return;
-  sentFiles = loadSent();
   log('▶ Monitoramento iniciado');
   monitorInterval = setInterval(checkFolder, 30000);
   checkFolder();
@@ -260,7 +275,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  sentFiles = loadSent();
 
   const config = loadConfig();
   if (config.monitoring) {
@@ -296,7 +310,7 @@ async function checkForUpdate() {
         const response = await dialog.showMessageBox(mainWindow, {
           type: 'info',
           title: 'Atualização disponível',
-          message: `Nova versão disponível: ${data.version}`,
+          message: `Nova versão: ${data.version}`,
           detail: data.changelog || 'Atualize para obter as últimas correções.',
           buttons: ['Baixar Atualização', 'Agora não'],
           defaultId: 0,
@@ -307,9 +321,7 @@ async function checkForUpdate() {
         }
       }
     }
-  } catch {
-    // Silently ignore update check errors
-  }
+  } catch {}
 }
 
 app.on('window-all-closed', () => {
@@ -358,15 +370,12 @@ ipcMain.handle('stopMonitoring', () => {
 });
 
 ipcMain.handle('checkNow', async () => {
-  sentFiles = loadSent();
   await checkFolder();
   return true;
 });
 
 ipcMain.handle('reprocess', async () => {
-  sentFiles = new Set();
-  saveSent(sentFiles);
-  log('🔄 Lista de enviados limpa — reprocessando todos os XMLs...');
+  log('🔄 Reprocessando todos os XMLs da pasta...');
   await checkFolder();
   return true;
 });
