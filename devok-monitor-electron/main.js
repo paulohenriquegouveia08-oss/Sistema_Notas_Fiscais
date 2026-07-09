@@ -106,6 +106,24 @@ function moveFile(src, destFolder) {
   return dest;
 }
 
+function validateXml(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    if (!content.includes('<nfeProc') && !content.includes('<NFe')) {
+      return { valid: false, error: 'Não é XML de NF-e' };
+    }
+    if (!content.includes('infNFe') && !content.includes('chaveNFe')) {
+      return { valid: false, error: 'XML inválido (sem infNFe)' };
+    }
+    if (content.trim().length < 100) {
+      return { valid: false, error: 'XML muito pequeno' };
+    }
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: `Erro ao ler: ${e.message}` };
+  }
+}
+
 async function checkFolder() {
   const config = loadConfig();
   const folder = config.watchFolder;
@@ -130,6 +148,16 @@ async function checkFolder() {
     const filePath = path.join(folder, file);
 
     try {
+      const validation = validateXml(filePath);
+      if (!validation.valid) {
+        log(`❌ ${file} → ${validation.error}`);
+        moveFile(filePath, path.join(folder, 'erros'));
+        stats.errors++;
+        sentFiles.add(file);
+        saveSent(sentFiles);
+        continue;
+      }
+
       log(`Enviando: ${file}`);
       const result = await sendXml(filePath);
 
