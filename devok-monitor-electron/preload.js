@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startMonitoring: () => ipcRenderer.invoke('startMonitoring'),
   stopMonitoring: () => ipcRenderer.invoke('stopMonitoring'),
   checkNow: () => ipcRenderer.invoke('checkNow'),
+  reprocess: () => ipcRenderer.invoke('reprocess'),
   openExternal: (url) => ipcRenderer.invoke('openExternal', url),
   onLog: (callback) => ipcRenderer.on('log', (event, msg) => callback(msg)),
   onStats: (callback) => ipcRenderer.on('stats', (event, stats) => callback(stats)),

@@ -5,6 +5,7 @@ const btnBrowse = document.getElementById('btnBrowse');
 const btnStart = document.getElementById('btnStart');
 const btnStop = document.getElementById('btnStop');
 const btnCheck = document.getElementById('btnCheck');
+const btnReprocess = document.getElementById('btnReprocess');
 const statusText = document.getElementById('statusText');
 const lastCheckText = document.getElementById('lastCheckText');
 const logBox = document.getElementById('logBox');
@@ -68,6 +69,16 @@ btnCheck.addEventListener('click', async () => {
   await saveCurrentConfig();
   addLog('🔍 Verificação manual...');
   await window.electronAPI.checkNow();
+});
+
+btnReprocess.addEventListener('click', async () => {
+  if (!folderInput.value) {
+    addLog('❌ Selecione a pasta do Devok primeiro');
+    return;
+  }
+  await saveCurrentConfig();
+  addLog('🔄 Reprocessando todos os XMLs...');
+  await window.electronAPI.reprocess();
 });
 
 apiInput.addEventListener('change', saveCurrentConfig);

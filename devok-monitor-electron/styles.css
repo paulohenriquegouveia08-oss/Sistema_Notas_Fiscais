@@ -68,6 +68,7 @@ h1 {
 .btn.green { background: #00c853; color: #fff; }
 .btn.red { background: #ff1744; color: #fff; }
 .btn.blue { background: #2979ff; color: #fff; }
+.btn.orange { background: #ff9100; color: #fff; }
 .btn:hover:not(:disabled) { opacity: 0.85; }
 
 .status {

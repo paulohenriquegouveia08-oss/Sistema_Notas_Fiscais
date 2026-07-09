@@ -358,3 +358,11 @@ ipcMain.handle('checkNow', async () => {
   await checkFolder();
   return true;
 });
+
+ipcMain.handle('reprocess', async () => {
+  sentFiles = new Set();
+  saveSent(sentFiles);
+  log('🔄 Lista de enviados limpa — reprocessando todos os XMLs...');
+  await checkFolder();
+  return true;
+});
