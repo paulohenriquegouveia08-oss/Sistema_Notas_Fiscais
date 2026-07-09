@@ -136,8 +136,13 @@ async function checkFolder() {
         moveFile(filePath, path.join(folder, 'processados'));
         stats.imported++;
       } else if (result.duplicated > 0) {
-        log(`⏭️ ${file} → Duplicado`);
-        moveFile(filePath, path.join(folder, 'processados'));
+        const acao = result.details?.[0]?.acao || 'duplicado';
+        if (acao === 'nota_existente_xml_existente') {
+          log(`⏭️ ${file} → Nota e XML já existem`);
+        } else {
+          log(`⏭️ ${file} → ${acao}`);
+        }
+        moveFile(filePath, path.join(folder, 'duplicados'));
         stats.duplicated++;
       } else if (result.errors > 0) {
         const err = result.details?.[0]?.errors?.[0] || 'Erro';
@@ -146,7 +151,8 @@ async function checkFolder() {
         stats.errors++;
       } else {
         log(`⚠️ ${file} → Sem resultado`);
-        moveFile(filePath, path.join(folder, 'processados'));
+        moveFile(filePath, path.join(folder, 'erros'));
+        stats.errors++;
       }
 
       sentFiles.add(file);
