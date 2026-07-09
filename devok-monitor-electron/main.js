@@ -12,6 +12,7 @@ let monitorInterval = null;
 let scheduleTimeout = null;
 let lastCheckTime = null;
 let sentFiles = new Set();
+let isChecking = false;
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 const SENT_PATH = path.join(app.getPath('userData'), 'sent.json');
@@ -125,6 +126,12 @@ function validateXml(filePath) {
 }
 
 async function checkFolder() {
+  if (isChecking) {
+    log('Verificação já em andamento...');
+    return { imported: 0, duplicated: 0, errors: 0 };
+  }
+  isChecking = true;
+
   const config = loadConfig();
   const folder = config.watchFolder;
   if (!folder || !fs.existsSync(folder)) {
@@ -168,11 +175,7 @@ async function checkFolder() {
         stats.imported++;
       } else if (result.duplicated > 0) {
         const acao = result.details?.[0]?.acao || 'duplicado';
-        if (acao === 'nota_existente_xml_existente') {
-          log(`⏭️ ${file} → Nota e XML já existem`);
-        } else {
-          log(`⏭️ ${file} → ${acao}`);
-        }
+        log(`⏭️ ${file} → ${acao}`);
         moveFile(filePath, path.join(folder, 'duplicados'));
         stats.duplicated++;
       } else if (result.errors > 0) {
@@ -181,7 +184,7 @@ async function checkFolder() {
         moveFile(filePath, path.join(folder, 'erros'));
         stats.errors++;
       } else {
-        log(`⚠️ ${file} → Sem resultado`);
+        log(`⚠️ ${file} → Resposta vazia da API`);
         moveFile(filePath, path.join(folder, 'erros'));
         stats.errors++;
       }
@@ -199,6 +202,7 @@ async function checkFolder() {
 
   lastCheckTime = new Date();
   if (mainWindow) mainWindow.webContents.send('lastCheck', lastCheckTime.toLocaleTimeString('pt-BR'));
+  isChecking = false;
   return stats;
 }
 

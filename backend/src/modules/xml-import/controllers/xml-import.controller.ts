@@ -76,7 +76,7 @@ export class XmlImportController {
 
     const total = results.length;
     const imported = results.filter((r: any) => r.invoice?.isNew).length;
-    const duplicated = results.filter((r: any) => !r.invoice?.isNew && r.acao !== 'nota_existente_xml_salvo' && !r.errors?.length).length;
+    const duplicated = results.filter((r: any) => !r.invoice?.isNew && !r.errors?.length).length;
     const xmlsNovos = results.filter((r: any) => r.xmlDocument?.isNew).length;
     const xmlsVinculados = results.filter((r: any) => r.acao === 'nota_existente_xml_salvo').length;
     const erros = results.filter((r: any) => r.errors?.length > 0);
