@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStats: (callback) => ipcRenderer.on('stats', (event, stats) => callback(stats)),
   onLastCheck: (callback) => ipcRenderer.on('lastCheck', (event, time) => callback(time)),
   onConfig: (callback) => ipcRenderer.on('config', (event, config) => callback(config)),
+  onVersion: (callback) => ipcRenderer.on('version', (event, version) => callback(version)),
 });

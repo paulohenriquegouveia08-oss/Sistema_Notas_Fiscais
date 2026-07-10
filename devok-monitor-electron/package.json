@@ -1,16 +1,17 @@
 {
   "name": "devok-monitor",
-  "version": "1.0.0",
+  "version": "1.7.2",
   "description": "Monitor automático de XMLs do Devok para SisFin",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win",
+    "build": "electron-builder --win portable --x64",
     "build:dir": "electron-builder --win --dir"
   },
   "build": {
     "appId": "com.pkdigital.devokmonitor",
-    "productName": "Devok Monitor",
+    "productName": "DevokMonitor",
+    "artifactName": "DevokMonitor-v${version}.${ext}",
     "win": {
       "target": "portable"
     },

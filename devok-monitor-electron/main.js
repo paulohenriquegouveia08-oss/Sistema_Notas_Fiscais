@@ -4,7 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
@@ -56,7 +56,7 @@ function httpRequest(url) {
   });
 }
 
-function sendXml(filePath) {
+function sendXml(filePath, retries = 1) {
   return new Promise((resolve, reject) => {
     const config = loadConfig();
     const fileName = path.basename(filePath);
@@ -88,13 +88,44 @@ function sendXml(filePath) {
     }, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
+      res.on('error', (err) => {
+        if (retries > 0) {
+          log(`⚠️ Erro na resposta, tentando novamente...`);
+          setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+        } else {
+          reject(new Error(`Erro na resposta: ${err.message}`));
+        }
+      });
       res.on('end', () => {
+        if (res.statusCode !== 200) {
+          if (retries > 0) {
+            log(`⚠️ HTTP ${res.statusCode}, tentando novamente...`);
+            setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
+          }
+          return;
+        }
         try { resolve(JSON.parse(data)); }
-        catch { reject(new Error('Resposta inválida')); }
+        catch {
+          if (retries > 0) {
+            log(`⚠️ Resposta inválida (len ${data.length}), tentando novamente...`);
+            setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+          } else {
+            reject(new Error(`Resposta inválida (status ${res.statusCode}, len ${data.length})`));
+          }
+        }
       });
     });
 
-    req.on('error', reject);
+    req.on('error', (err) => {
+      if (retries > 0) {
+        log(`⚠️ Erro de conexão: ${err.message}, tentando novamente...`);
+        setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+      } else {
+        reject(err);
+      }
+    });
     req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
     req.write(body);
     req.end();
@@ -249,7 +280,7 @@ async function checkFolder() {
       }
 
       if (mainWindow) mainWindow.webContents.send('stats', stats);
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 1000));
     } catch (e) {
       log(`❌ ${file} → ${e.message}`);
       stats.errors++;
@@ -307,6 +338,7 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
   mainWindow.setMenuBarVisibility(false);
+  mainWindow.setTitle(`Devok Monitor v${APP_VERSION}`);
 
   mainWindow.on('close', () => {
     stopMonitoring();
@@ -325,6 +357,7 @@ app.whenReady().then(() => {
 
   if (mainWindow) {
     mainWindow.webContents.send('config', config);
+    mainWindow.webContents.send('version', APP_VERSION);
   }
 
   checkForUpdate();

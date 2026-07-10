@@ -99,6 +99,10 @@ window.electronAPI.onStats((stats) => updateStats(stats));
 window.electronAPI.onLastCheck((time) => {
   lastCheckText.textContent = `Última verificação: ${time}`;
 });
+window.electronAPI.onVersion((version) => {
+  const badge = document.getElementById('versionBadge');
+  if (badge) badge.textContent = `v${version}`;
+});
 window.electronAPI.onConfig((config) => {
   if (config.watchFolder) folderInput.value = config.watchFolder;
   if (config.apiUrl) apiInput.value = config.apiUrl;
