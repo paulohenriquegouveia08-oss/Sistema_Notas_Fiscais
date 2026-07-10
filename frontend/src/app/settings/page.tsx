@@ -133,15 +133,15 @@ export default function SettingsPage() {
           <h3 className="text-lg font-semibold text-text-primary mb-2 flex items-center gap-2">
             <Monitor className="h-5 w-5 text-primary" />
             Devok Monitor — Importador Automático
-            <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-primary/15 text-primary">v1.8.0</span>
+            <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-primary/15 text-primary">v1.8.1</span>
           </h3>
           <p className="text-sm text-text-muted mb-4">
             App desktop que monitora a pasta do Devok e envia XMLs automaticamente para o SisFin.
           </p>
 
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
-            <p className="text-xs font-medium text-primary mb-1">Última atualização (v1.8.0)</p>
-            <p className="text-xs text-text-muted">Envio em lote — todos os XMLs novos são enviados em uma única requisição. Verificação por chave de acesso prévia.</p>
+            <p className="text-xs font-medium text-primary mb-1">Última atualização (v1.8.1)</p>
+            <p className="text-xs text-text-muted">Corrigido HTTP 201 (NestJS). Arquivos são removidos da pasta após importação para evitar reprocessamento.</p>
           </div>
 
           <div className="space-y-3 mb-4">
@@ -175,12 +175,12 @@ export default function SettingsPage() {
 
           <div className="flex items-center gap-3 flex-wrap">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/DevokMonitor-v1.8.0.exe`}
+              href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/DevokMonitor-v1.8.1.exe`}
               download
               className="btn-primary flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Baixar DevokMonitor v1.8.0
+              Baixar DevokMonitor v1.8.1
             </a>
             <a
               href={`${process.env.NEXT_PUBLIC_API_URL}/devok-monitor/download/README.md`}

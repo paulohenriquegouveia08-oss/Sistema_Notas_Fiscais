@@ -4,7 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
@@ -103,7 +103,7 @@ function sendXmlBatch(filePaths, retries = 1) {
         }
       });
       res.on('end', () => {
-        if (res.statusCode !== 200) {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
           if (retries > 0) {
             log(`⚠️ HTTP ${res.statusCode}, tentando novamente...`);
             setTimeout(() => sendXmlBatch(filePaths, retries - 1).then(resolve, reject), 3000);
@@ -147,6 +147,7 @@ function copyFile(src, destFolder) {
     dest = path.join(destFolder, `${name}_${Date.now()}${ext}`);
   }
   fs.copyFileSync(src, dest);
+  try { fs.unlinkSync(src); } catch {}
   return dest;
 }
 
