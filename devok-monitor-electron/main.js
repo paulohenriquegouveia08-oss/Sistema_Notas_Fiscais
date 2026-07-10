@@ -4,7 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
