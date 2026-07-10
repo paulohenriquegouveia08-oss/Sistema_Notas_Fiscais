@@ -35,6 +35,27 @@ function log(message) {
   }
 }
 
+function httpRequest(url) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+    client.get({
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      timeout: 10000,
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch { reject(new Error('Resposta inválida')); }
+      });
+    }).on('error', reject);
+  });
+}
+
 function sendXml(filePath) {
   return new Promise((resolve, reject) => {
     const config = loadConfig();
@@ -194,16 +215,16 @@ async function checkFolder() {
         continue;
       }
 
-      log(`Enviando: ${file} (NF ${numero || '?'})`);
       const exists = await checkChaveExists(chave);
       if (exists) {
-        log(`⏭️ ${file} → nota_existente (chave ${chave.slice(-8)})`);
+        log(`⏭️ ${file} → nota_existente (NF ${numero || '?'}, chave ...${chave.slice(-8)})`);
         copyFile(filePath, path.join(folder, 'duplicados'));
         stats.duplicated++;
         if (mainWindow) mainWindow.webContents.send('stats', stats);
         continue;
       }
 
+      log(`Enviando: ${file} (NF ${numero || '?'})`);
       const result = await sendXml(filePath);
 
       if (result.imported > 0) {
