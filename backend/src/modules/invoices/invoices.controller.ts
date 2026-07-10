@@ -67,6 +67,13 @@ export class InvoicesController {
     });
   }
 
+  @Get('check-chave/:chave')
+  @ApiOperation({ summary: 'Verificar se chave de acesso já existe no banco' })
+  async checkChave(@Param('chave') chave: string) {
+    const exists = await this.invoicesService.checkByChaveAcesso(chave);
+    return { exists };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obter nota fiscal por ID' })
   async findOne(@Param('id') id: string) {

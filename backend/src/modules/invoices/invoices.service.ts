@@ -119,6 +119,14 @@ export class InvoicesService {
     };
   }
 
+  async checkByChaveAcesso(chaveAcesso: string): Promise<boolean> {
+    const invoice = await this.invoiceRepo.findOne({
+      where: { chaveAcesso },
+      select: ['id'],
+    });
+    return !!invoice;
+  }
+
   async findOne(id: string): Promise<Invoice> {
     const invoice = await this.invoiceRepo.findOne({
       where: { id },

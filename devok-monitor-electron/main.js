@@ -4,7 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
@@ -133,6 +133,17 @@ function extractNumero(filePath) {
   }
 }
 
+async function checkChaveExists(chave) {
+  const config = loadConfig();
+  try {
+    const url = `${config.apiUrl}/invoices/check-chave/${chave}`;
+    const result = await httpRequest(url);
+    return result.exists === true;
+  } catch {
+    return false;
+  }
+}
+
 async function checkFolder() {
   if (isChecking) {
     log('Verificação já em andamento...');
@@ -184,6 +195,15 @@ async function checkFolder() {
       }
 
       log(`Enviando: ${file} (NF ${numero || '?'})`);
+      const exists = await checkChaveExists(chave);
+      if (exists) {
+        log(`⏭️ ${file} → nota_existente (chave ${chave.slice(-8)})`);
+        copyFile(filePath, path.join(folder, 'duplicados'));
+        stats.duplicated++;
+        if (mainWindow) mainWindow.webContents.send('stats', stats);
+        continue;
+      }
+
       const result = await sendXml(filePath);
 
       if (result.imported > 0) {
