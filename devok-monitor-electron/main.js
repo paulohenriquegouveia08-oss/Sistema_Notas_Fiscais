@@ -4,7 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.8.0';
 const VERSION_URL = 'http://137.131.233.254:3002/api/v1/devok-monitor/download/version.json';
 
 let mainWindow;
@@ -56,24 +56,30 @@ function httpRequest(url) {
   });
 }
 
-function sendXml(filePath, retries = 1) {
+function sendXmlBatch(filePaths, retries = 1) {
   return new Promise((resolve, reject) => {
     const config = loadConfig();
-    const fileName = path.basename(filePath);
-    const fileData = fs.readFileSync(filePath);
-
     const boundary = '----ElectronBoundary' + Date.now();
     const CRLF = '\r\n';
     const parts = [];
-    parts.push(`--${boundary}${CRLF}`);
-    parts.push(`Content-Disposition: form-data; name="files"; filename="${fileName}"${CRLF}`);
-    parts.push(`Content-Type: application/xml${CRLF}${CRLF}`);
-    const header = Buffer.from(parts.join(''));
-    const footer = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
-    const body = Buffer.concat([header, fileData, footer]);
+
+    for (const filePath of filePaths) {
+      const fileName = path.basename(filePath);
+      const fileData = fs.readFileSync(filePath);
+      parts.push(`--${boundary}${CRLF}`);
+      parts.push(`Content-Disposition: form-data; name="files"; filename="${fileName}"${CRLF}`);
+      parts.push(`Content-Type: application/xml${CRLF}${CRLF}`);
+      parts.push(fileData);
+      parts.push(CRLF);
+    }
+    parts.push(`--${boundary}--${CRLF}`);
+
+    const body = Buffer.concat(parts.map(p => typeof p === 'string' ? Buffer.from(p) : p));
 
     const url = new URL(`${config.apiUrl}/xml/import`);
     const client = url.protocol === 'https:' ? https : http;
+
+    log(`📦 Enviando ${filePaths.length} XML(s) em lote...`);
 
     const req = client.request({
       hostname: url.hostname,
@@ -84,14 +90,14 @@ function sendXml(filePath, retries = 1) {
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
         'Content-Length': body.length,
       },
-      timeout: 60000,
+      timeout: 300000,
     }, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
       res.on('error', (err) => {
         if (retries > 0) {
           log(`⚠️ Erro na resposta, tentando novamente...`);
-          setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+          setTimeout(() => sendXmlBatch(filePaths, retries - 1).then(resolve, reject), 3000);
         } else {
           reject(new Error(`Erro na resposta: ${err.message}`));
         }
@@ -100,7 +106,7 @@ function sendXml(filePath, retries = 1) {
         if (res.statusCode !== 200) {
           if (retries > 0) {
             log(`⚠️ HTTP ${res.statusCode}, tentando novamente...`);
-            setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+            setTimeout(() => sendXmlBatch(filePaths, retries - 1).then(resolve, reject), 3000);
           } else {
             reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
           }
@@ -110,7 +116,7 @@ function sendXml(filePath, retries = 1) {
         catch {
           if (retries > 0) {
             log(`⚠️ Resposta inválida (len ${data.length}), tentando novamente...`);
-            setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+            setTimeout(() => sendXmlBatch(filePaths, retries - 1).then(resolve, reject), 3000);
           } else {
             reject(new Error(`Resposta inválida (status ${res.statusCode}, len ${data.length})`));
           }
@@ -121,7 +127,7 @@ function sendXml(filePath, retries = 1) {
     req.on('error', (err) => {
       if (retries > 0) {
         log(`⚠️ Erro de conexão: ${err.message}, tentando novamente...`);
-        setTimeout(() => sendXml(filePath, retries - 1).then(resolve, reject), 2000);
+        setTimeout(() => sendXmlBatch(filePaths, retries - 1).then(resolve, reject), 3000);
       } else {
         reject(err);
       }
@@ -223,70 +229,107 @@ async function checkFolder() {
   log(`${files.length} XML(s) na pasta`);
   const stats = { imported: 0, duplicated: 0, errors: 0 };
 
+  const validFiles = [];
+  const invalidFiles = [];
+
   for (const file of files) {
     const filePath = path.join(folder, file);
-
-    try {
-      const validation = validateXml(filePath);
-      if (!validation.valid) {
-        log(`❌ ${file} → ${validation.error}`);
-        copyFile(filePath, path.join(folder, 'erros'));
-        stats.errors++;
-        if (mainWindow) mainWindow.webContents.send('stats', stats);
-        continue;
-      }
-
-      const chave = extractChaveAcesso(filePath);
-      const numero = extractNumero(filePath);
-      if (!chave) {
-        log(`❌ ${file} → Sem chave de acesso`);
-        copyFile(filePath, path.join(folder, 'erros'));
-        stats.errors++;
-        if (mainWindow) mainWindow.webContents.send('stats', stats);
-        continue;
-      }
-
-      const exists = await checkChaveExists(chave);
-      if (exists) {
-        log(`⏭️ ${file} → nota_existente (NF ${numero || '?'}, chave ...${chave.slice(-8)})`);
-        copyFile(filePath, path.join(folder, 'duplicados'));
-        stats.duplicated++;
-        if (mainWindow) mainWindow.webContents.send('stats', stats);
-        continue;
-      }
-
-      log(`Enviando: ${file} (NF ${numero || '?'})`);
-      const result = await sendXml(filePath);
-
-      if (result.imported > 0) {
-        const acao = result.details?.[0]?.acao || 'nota_criada';
-        log(`✅ ${file} → ${acao}`);
-        copyFile(filePath, path.join(folder, 'processados'));
-        stats.imported++;
-      } else if (result.duplicated > 0) {
-        const acao = result.details?.[0]?.acao || 'duplicado';
-        log(`⏭️ ${file} → ${acao}`);
-        copyFile(filePath, path.join(folder, 'duplicados'));
-        stats.duplicated++;
-      } else if (result.errors > 0) {
-        const err = result.details?.[0]?.errors?.[0] || 'Erro';
-        log(`❌ ${file} → ${err}`);
-        copyFile(filePath, path.join(folder, 'erros'));
-        stats.errors++;
-      } else {
-        log(`⚠️ ${file} → Resposta vazia da API`);
-        copyFile(filePath, path.join(folder, 'erros'));
-        stats.errors++;
-      }
-
-      if (mainWindow) mainWindow.webContents.send('stats', stats);
-      await new Promise(r => setTimeout(r, 1000));
-    } catch (e) {
-      log(`❌ ${file} → ${e.message}`);
+    const validation = validateXml(filePath);
+    if (!validation.valid) {
+      log(`❌ ${file} → ${validation.error}`);
+      copyFile(filePath, path.join(folder, 'erros'));
       stats.errors++;
-      if (mainWindow) mainWindow.webContents.send('stats', stats);
+      invalidFiles.push(file);
+      continue;
+    }
+
+    const chave = extractChaveAcesso(filePath);
+    if (!chave) {
+      log(`❌ ${file} → Sem chave de acesso`);
+      copyFile(filePath, path.join(folder, 'erros'));
+      stats.errors++;
+      continue;
+    }
+
+    const numero = extractNumero(filePath);
+    validFiles.push({ filePath, file, chave, numero });
+  }
+
+  if (validFiles.length === 0) {
+    log('Nenhum XML válido para enviar');
+    if (mainWindow) mainWindow.webContents.send('stats', stats);
+    isChecking = false;
+    return stats;
+  }
+
+  log(`🔍 Verificando ${validFiles.length} chave(s) de acesso...`);
+  const newFiles = [];
+
+  for (const vf of validFiles) {
+    const exists = await checkChaveExists(vf.chave);
+    if (exists) {
+      log(`⏭️ ${vf.file} → nota_existente (NF ${vf.numero || '?'})`);
+      copyFile(vf.filePath, path.join(folder, 'duplicados'));
+      stats.duplicated++;
+    } else {
+      newFiles.push(vf);
     }
   }
+
+  if (mainWindow) mainWindow.webContents.send('stats', stats);
+
+  if (newFiles.length === 0) {
+    log('✅ Todos os XMLs já existem no banco');
+    lastCheckTime = new Date();
+    if (mainWindow) mainWindow.webContents.send('lastCheck', lastCheckTime.toLocaleTimeString('pt-BR'));
+    isChecking = false;
+    return stats;
+  }
+
+  log(`📤 ${newFiles.length} XML(s) novos para importar`);
+
+  const batchFilePaths = newFiles.map(vf => vf.filePath);
+
+  try {
+    const result = await sendXmlBatch(batchFilePaths);
+
+    if (result.details && Array.isArray(result.details)) {
+      for (let i = 0; i < result.details.length; i++) {
+        const detail = result.details[i];
+        const vf = newFiles[i];
+        if (!vf) continue;
+
+        if (detail.invoice?.isNew) {
+          log(`✅ ${vf.file} → ${detail.acao || 'nota_criada'}`);
+          copyFile(vf.filePath, path.join(folder, 'processados'));
+          stats.imported++;
+        } else if (!detail.errors?.length) {
+          log(`⏭️ ${vf.file} → ${detail.acao || 'duplicado'}`);
+          copyFile(vf.filePath, path.join(folder, 'duplicados'));
+          stats.duplicated++;
+        } else {
+          const err = detail.errors?.[0] || 'Erro';
+          log(`❌ ${vf.file} → ${err}`);
+          copyFile(vf.filePath, path.join(folder, 'erros'));
+          stats.errors++;
+        }
+      }
+    } else {
+      log(`⚠️ Resposta inesperada da API`);
+      for (const vf of newFiles) {
+        copyFile(vf.filePath, path.join(folder, 'erros'));
+        stats.errors++;
+      }
+    }
+  } catch (e) {
+    log(`❌ Erro no lote: ${e.message}`);
+    for (const vf of newFiles) {
+      copyFile(vf.filePath, path.join(folder, 'erros'));
+      stats.errors++;
+    }
+  }
+
+  if (mainWindow) mainWindow.webContents.send('stats', stats);
 
   lastCheckTime = new Date();
   if (mainWindow) mainWindow.webContents.send('lastCheck', lastCheckTime.toLocaleTimeString('pt-BR'));

@@ -1,6 +1,6 @@
 {
   "name": "devok-monitor",
-  "version": "1.7.2",
+  "version": "1.8.0",
   "description": "Monitor automático de XMLs do Devok para SisFin",
   "main": "main.js",
   "scripts": {
